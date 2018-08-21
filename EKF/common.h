@@ -85,6 +85,7 @@ struct ext_vision_message {
 	float posErr;		///< 1-Sigma horizontal position accuracy (m)
 	float hgtErr;		///< 1-Sigma height accuracy (m)
 	float angErr;		///< 1-Sigma angular error (rad)
+	uint32_t nResets;
 };
 
 struct outputSample {
@@ -155,6 +156,7 @@ struct extVisionSample {
 	float posErr;		///< 1-Sigma horizontal position accuracy (m)
 	float hgtErr;		///< 1-Sigma height accuracy (m)
 	float angErr;		///< 1-Sigma angular error (rad)
+	uint32_t nResets;  ///< number of times the external vision estimator has reset
 	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
 

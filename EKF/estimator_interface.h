@@ -537,6 +537,8 @@ protected:
 	uint64_t _time_last_gnd_effect_on{0};	//last time the baro ground effect compensation was turned on externally (uSec)
 	uint64_t _time_last_auxvel{0};
 
+	uint32_t _resets_last_ext_vision;
+
 	fault_status_u _fault_status{};
 
 	// allocate data buffers and intialise interface variables

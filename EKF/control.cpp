@@ -160,6 +160,20 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new exernal vision data
 	if (_ev_data_ready) {
 
+		// Check for resets
+		if(_ev_sample_delayed.nResets > _resets_last_ext_vision) {
+			// The external estimator has reset
+			ECL_INFO("EKF detected external vision reset");
+
+			// Reset fusion control, which will trigger a re-initialisation
+			_control_status.flags.ev_pos = false;
+			_control_status.flags.ev_hgt = false;
+
+		}
+
+		// record number of resets for comparison next measurement
+		_resets_last_ext_vision = _ev_sample_delayed.nResets;
+
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
 		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {

@@ -446,6 +446,7 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		ev_sample_new.hgtErr = evdata->hgtErr;
 		ev_sample_new.quat = evdata->quat;
 		ev_sample_new.posNED = evdata->posNED;
+		ev_sample_new.nResets = evdata->nResets;
 
 		// record time for comparison next measurement
 		_time_last_ext_vision = time_usec;
