@@ -470,8 +470,10 @@ private:
 	// predict ekf state
 	void predictState();
 
+#define FLASH_ITCM_SECTION __attribute__ ((section (".itcm_flash_attr")))
+
 	// predict ekf covariance
-	void predictCovariance();
+	void predictCovariance() FLASH_ITCM_SECTION;
 
 	// ekf sequential fusion of magnetometer measurements
 	void fuseMag();
