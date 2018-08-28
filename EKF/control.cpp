@@ -664,7 +664,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical innovations being positive and not stale.
 	// Clipping causes the average accel reading to move towards zero which makes the INS think it is falling and produces positive vertical innovations
-	float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
+	ecl_float_t var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
 	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are indepedant
 			(sq(_vel_pos_innov[5] * _vel_pos_innov[2]) > var_product_lim * (_vel_pos_innov_var[5] * _vel_pos_innov_var[2])) && // vertical position and velocity sensors are in agreement that we have a significant error
 			(_vel_pos_innov[2] > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling

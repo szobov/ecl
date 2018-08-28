@@ -767,7 +767,7 @@ void Ekf::calcMagDeclination()
 }
 
 // This function forces the covariance matrix to be symmetric
-void Ekf::makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::makeSymmetrical(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
 	for (unsigned row = first; row <= last; row++) {
 		for (unsigned column = 0; column < row; column++) {
@@ -781,19 +781,19 @@ void Ekf::makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_
 void Ekf::constrainStates()
 {
 	for (int i = 0; i < 4; i++) {
-		_state.quat_nominal(i) = math::constrain(_state.quat_nominal(i), -1.0f, 1.0f);
+		_state.quat_nominal(i) = math::constrain(_state.quat_nominal(i), -1.0, 1.0);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.vel(i) = math::constrain(_state.vel(i), -1000.0f, 1000.0f);
+		_state.vel(i) = math::constrain(_state.vel(i), -1000.0, 1000.0);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.pos(i) = math::constrain(_state.pos(i), -1.e6f, 1.e6f);
+		_state.pos(i) = math::constrain(_state.pos(i), -1.e6, 1.e6);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -math::radians(20.f) * _dt_ekf_avg, math::radians(20.f) * _dt_ekf_avg);
+		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -math::radians(20.0) * _dt_ekf_avg, math::radians(20.0) * _dt_ekf_avg);
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -801,15 +801,15 @@ void Ekf::constrainStates()
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.mag_I(i) = math::constrain(_state.mag_I(i), -1.0f, 1.0f);
+		_state.mag_I(i) = math::constrain(_state.mag_I(i), -1.0, 1.0);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5f, 0.5f);
+		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5, 0.5);
 	}
 
 	for (int i = 0; i < 2; i++) {
-		_state.wind_vel(i) = math::constrain(_state.wind_vel(i), -100.0f, 100.0f);
+		_state.wind_vel(i) = math::constrain(_state.wind_vel(i), -100.0, 100.0);
 	}
 }
 
@@ -1054,7 +1054,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
 		float vel_err_conservative = 0.0f;
 
 		if (_control_status.flags.opt_flow) {
-			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
+			ecl_float_t gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
 			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * sqrtf(sq(_flow_innov[0]) + sq(_flow_innov[1]));
 		}
 
@@ -1198,7 +1198,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 }
 
 // fuse measurement
-void Ekf::fuse(float *K, float innovation)
+void Ekf::fuse(ecl_float_t K[_k_num_states], ecl_float_t innovation)
 {
 	for (unsigned i = 0; i < 4; i++) {
 		_state.quat_nominal(i) = _state.quat_nominal(i) - K[i] * innovation;
@@ -1236,7 +1236,7 @@ void Ekf::fuse(float *K, float innovation)
 }
 
 // zero specified range of rows in the state covariance matrix
-void Ekf::zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroRows(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
 	uint8_t row;
 
@@ -1246,7 +1246,7 @@ void Ekf::zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 }
 
 // zero specified range of columns in the state covariance matrix
-void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroCols(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
 	uint8_t row;
 
@@ -1255,7 +1255,7 @@ void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first
 	}
 }
 
-void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroOffDiag(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
 {
 	// save diagonal elements
 	uint8_t row;
@@ -1275,7 +1275,7 @@ void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t fi
 	}
 }
 
-void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
+void Ekf::setDiag(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
 {
 	// zero rows and columns
 	zeroRows(cov_mat, first, last);

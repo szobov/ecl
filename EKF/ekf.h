@@ -261,8 +261,8 @@ private:
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
 	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 
-	float _dt_ekf_avg{FILTER_UPDATE_PERIOD_S}; ///< average update rate of the ekf
-	float _dt_update{0.01f}; ///< delta time since last ekf update. This time can be used for filters which run at the same rate as the Ekf::update() function. (sec)
+	ecl_float_t _dt_ekf_avg{FILTER_UPDATE_PERIOD_S}; ///< average update rate of the ekf
+	ecl_float_t _dt_update{0.01f}; ///< delta time since last ekf update. This time can be used for filters which run at the same rate as the Ekf::update() function. (sec)
 
 	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
@@ -335,42 +335,42 @@ private:
 	bool _mag_use_inhibit{false};		///< true when magnetomer use is being inhibited
 	bool _mag_use_inhibit_prev{false};	///< true when magnetomer use was being inhibited the previous frame
 	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetomer inhibit has been active for long enough to require a yaw reset when conditons improve.
-	float _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
+	ecl_float_t _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 	bool _vehicle_at_rest_prev{false};	///< true when the vehicle was at rest the previous time the status was checked
 
-	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
+	ecl_float_t P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 
-	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
-	float _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
-	float _aux_vel_innov[2] {};	///< NE auxiliary velocity innovations: (m/sec)
+	ecl_float_t _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
+	ecl_float_t _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+	ecl_float_t _aux_vel_innov[2] {};	///< NE auxiliary velocity innovations: (m/sec)
 
-	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
-	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
+	ecl_float_t _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
+	ecl_float_t _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
 
-	float _airspeed_innov{0.0f};		///< airspeed measurement innovation (m/sec)
-	float _airspeed_innov_var{0.0f};	///< airspeed measurement innovation variance ((m/sec)**2)
+	ecl_float_t _airspeed_innov{0.0f};		///< airspeed measurement innovation (m/sec)
+	ecl_float_t _airspeed_innov_var{0.0f};	///< airspeed measurement innovation variance ((m/sec)**2)
 
-	float _beta_innov{0.0f};	///< synthetic sideslip measurement innovation (rad)
-	float _beta_innov_var{0.0f};	///< synthetic sideslip measurement innovation variance (rad**2)
+	ecl_float_t _beta_innov{0.0f};	///< synthetic sideslip measurement innovation (rad)
+	ecl_float_t _beta_innov_var{0.0f};	///< synthetic sideslip measurement innovation variance (rad**2)
 
-	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
-	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
+	ecl_float_t _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
+	ecl_float_t _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
-	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
-	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
+	ecl_float_t _heading_innov{0.0f};	///< heading measurement innovation (rad)
+	ecl_float_t _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
 
 	// optical flow processing
-	float _flow_innov[2] {};	///< flow measurement innovation (rad/sec)
-	float _flow_innov_var[2] {};	///< flow innovation variance ((rad/sec)**2)
+	ecl_float_t _flow_innov[2] {};	///< flow measurement innovation (rad/sec)
+	ecl_float_t _flow_innov_var[2] {};	///< flow innovation variance ((rad/sec)**2)
 	Vector3f _flow_gyro_bias;	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector3f _imu_del_ang_of;	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
-	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
+	ecl_float_t _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 	Vector2f _flowRadXYcomp;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
-	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
+	ecl_float_t _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
 	// output predictor states
 	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
@@ -547,14 +547,14 @@ private:
 	void fixCovarianceErrors();
 
 	// make ekf covariance matrix symmetric between a nominated state indexe range
-	void makeSymmetrical(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+	void makeSymmetrical(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// constrain the ekf states
 	void constrainStates();
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(float *K, float innovation);
+	void fuse(ecl_float_t K[_k_num_states], ecl_float_t innovation);
 
 	// calculate the earth rotation vector from a given latitude
 	void calcEarthRateNED(Vector3f &omega, float lat_rad) const;
@@ -611,7 +611,7 @@ private:
 	void checkRangeDataValidity();
 
 	// return the square of two floating point numbers - used in auto coded sections
-	static constexpr float sq(float var) { return var * var; }
+	static constexpr ecl_float_t sq(ecl_float_t var) { return var * var; }
 
 	// set control flags to use baro height
 	void setControlBaroHeight();
@@ -626,17 +626,17 @@ private:
 	void setControlEVHeight();
 
 	// zero the specified range of rows in the state covariance matrix
-	void zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+	void zeroRows(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// zero the specified range of columns in the state covariance matrix
-	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+	void zeroCols(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// zero the specified range of off diagonals in the state covariance matrix
-	void zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+	void zeroOffDiag(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
 	// zero the specified range of off diagonals in the state covariance matrix
 	// set the diagonals to the supplied value
-	void setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance);
+	void setDiag(ecl_float_t (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance);
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();

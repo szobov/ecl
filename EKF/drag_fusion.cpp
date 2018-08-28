@@ -45,13 +45,13 @@
 
 void Ekf::fuseDrag()
 {
-	float SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
-	float H_ACC[24] = {}; // Observation Jacobian
-	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
-	float Kfusion[24] = {}; // Kalman gain vector
-	float R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
+	ecl_float_t SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
+	ecl_float_t H_ACC[24] = {}; // Observation Jacobian
+	ecl_float_t SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
+	ecl_float_t Kfusion[24] = {}; // Kalman gain vector
+	ecl_float_t R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
 
-	float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
+	ecl_float_t rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
 
 	// calculate inverse of ballistic coefficient
 	if (_params.bcoef_x < 1.0f || _params.bcoef_y < 1.0f) {

@@ -47,18 +47,17 @@
 void Ekf::fuseAirspeed()
 {
 	// Initialize variables
-	float vn; // Velocity in north direction
-	float ve; // Velocity in east direction
-	float vd; // Velocity in downwards direction
-	float vwn; // Wind speed in north direction
-	float vwe; // Wind speed in east direction
-	float v_tas_pred; // Predicted measurement
-	float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f,
-			 10.0f)); // Variance for true airspeed measurement - (m/sec)^2
-	float SH_TAS[3] = {}; // Varialbe used to optimise calculations of measurement jacobian
-	float H_TAS[24] = {}; // Observation Jacobian
-	float SK_TAS[2] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
-	float Kfusion[24] = {}; // Kalman gain vector
+	ecl_float_t vn; // Velocity in north direction
+	ecl_float_t ve; // Velocity in east direction
+	ecl_float_t vd; // Velocity in downwards direction
+	ecl_float_t vwn; // Wind speed in north direction
+	ecl_float_t vwe; // Wind speed in east direction
+	ecl_float_t v_tas_pred; // Predicted measurement
+	ecl_float_t R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f)); // Variance for true airspeed measurement - (m/sec)^2
+	ecl_float_t SH_TAS[3] = {}; // Varialbe used to optimise calculations of measurement jacobian
+	ecl_float_t H_TAS[24] = {}; // Observation Jacobian
+	ecl_float_t SK_TAS[2] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
+	ecl_float_t Kfusion[24] = {}; // Kalman gain vector
 
 	// Copy required states to local variable names
 	vn = _state.vel(0);

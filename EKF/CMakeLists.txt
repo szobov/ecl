@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+option(ECL_FLOAT_SIZE "ECL default floating point (float32 or float64)" OFF)
+#add_compile_options(-Wno-double-promotion) # ONLY in ecl_float_t = float64 mode
+add_compile_options(-fsingle-precision-constant) # ONLY in ecl_float_t = float32 mode
+
 add_library(ecl_EKF
 	airspeed_fusion.cpp
 	control.cpp

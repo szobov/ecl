@@ -305,8 +305,7 @@ public:
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	void get_pos_d_deriv(float *pos_d_deriv)
 	{
-		float var = _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
-		*pos_d_deriv = var;
+		*pos_d_deriv = static_cast<float>(_output_vert_new.vel_d - _vel_imu_rel_body_ned(2));
 	}
 
 	// get the position of the body frame origin in local NED earth frame
@@ -395,7 +394,7 @@ public:
 	void print_status();
 
 	static constexpr unsigned FILTER_UPDATE_PERIOD_MS{8};	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
-	static constexpr float FILTER_UPDATE_PERIOD_S{FILTER_UPDATE_PERIOD_MS * 0.001f};
+	static constexpr ecl_float_t FILTER_UPDATE_PERIOD_S{FILTER_UPDATE_PERIOD_MS * 0.001};
 
 protected:
 

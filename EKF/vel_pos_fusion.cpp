@@ -49,10 +49,10 @@ void Ekf::fuseVelPosHeight()
 {
 	bool fuse_map[6] = {}; // map of booleans true when [VN,VE,VD,PN,PE,PD] observations are available
 	bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
-	float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
-	float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
-	float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
-	float innovation[6]; // local copy of innovations for  [VN,VE,VD,PN,PE,PD]
+	ecl_float_t R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
+	ecl_float_t gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
+	ecl_float_t Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
+	ecl_float_t innovation[6]; // local copy of innovations for  [VN,VE,VD,PN,PE,PD]
 	memcpy(innovation, _vel_pos_innov, sizeof(_vel_pos_innov));
 
 	// calculate innovations, innovations gate sizes and observation variances

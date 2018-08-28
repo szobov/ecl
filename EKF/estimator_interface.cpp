@@ -63,8 +63,8 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	}
 
 	imuSample imu_sample_new;
-	imu_sample_new.delta_ang = Vector3f(delta_ang);
-	imu_sample_new.delta_vel = Vector3f(delta_vel);
+	imu_sample_new.delta_ang = Vector3f(delta_ang[0], delta_ang[1], delta_ang[2]);
+	imu_sample_new.delta_vel = Vector3f(delta_vel[0], delta_vel[1], delta_vel[2]);
 	imu_sample_new.delta_ang_dt = delta_ang_dt * 1e-6f;
 	imu_sample_new.delta_vel_dt = delta_vel_dt * 1e-6f;
 	imu_sample_new.time_us = time_usec;
@@ -177,7 +177,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 		_time_last_mag = time_usec;
 
-		mag_sample_new.mag = Vector3f(data);
+		mag_sample_new.mag = Vector3f(data[0], data[1], data[2]);
 
 		_mag_buffer.push(mag_sample_new);
 	}
@@ -211,7 +211,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		_time_last_gps = time_usec;
 
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
-		gps_sample_new.vel = Vector3f(gps->vel_ned);
+		gps_sample_new.vel = Vector3f(gps->vel_ned[0], gps->vel_ned[1], gps->vel_ned[2]);
 
 		_gps_speed_valid = gps->vel_ned_valid;
 		gps_sample_new.sacc = gps->sacc;
@@ -475,8 +475,8 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, float (&data)[2], flo
 		auxvel_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 		_time_last_auxvel = time_usec;
 
-		auxvel_sample_new.velNE = Vector2f(data);
-		auxvel_sample_new.velVarNE = Vector2f(variance);
+		auxvel_sample_new.velNE = Vector2f(data[0], data[1]);
+		auxvel_sample_new.velVarNE = Vector2f(variance[0], variance[1]);
 
 		_auxvel_buffer.push(auxvel_sample_new);
 	}

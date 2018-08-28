@@ -38,6 +38,9 @@
  */
 #pragma once
 
+using ecl_float_t = float;
+//using ecl_float_t = double;
+
 #if defined(__PX4_POSIX) || defined(__PX4_NUTTX)
 
 #include <drivers/drv_hrt.h>

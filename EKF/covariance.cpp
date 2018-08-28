@@ -327,7 +327,7 @@ void Ekf::predictCovariance()
 	SPP[10] = SF[16];
 
 	// covariance update
-	float nextP[24][24];
+	ecl_float_t nextP[24][24];
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	nextP[0][0] = P[0][0] + P[1][0]*SF[9] + P[2][0]*SF[11] + P[3][0]*SF[10] + P[10][0]*SF[14] + P[11][0]*SF[15] + P[12][0]*SPP[10] + (daxVar*SQ[10])/4 + SF[9]*(P[0][1] + P[1][1]*SF[9] + P[2][1]*SF[11] + P[3][1]*SF[10] + P[10][1]*SF[14] + P[11][1]*SF[15] + P[12][1]*SPP[10]) + SF[11]*(P[0][2] + P[1][2]*SF[9] + P[2][2]*SF[11] + P[3][2]*SF[10] + P[10][2]*SF[14] + P[11][2]*SF[15] + P[12][2]*SPP[10]) + SF[10]*(P[0][3] + P[1][3]*SF[9] + P[2][3]*SF[11] + P[3][3]*SF[10] + P[10][3]*SF[14] + P[11][3]*SF[15] + P[12][3]*SPP[10]) + SF[14]*(P[0][10] + P[1][10]*SF[9] + P[2][10]*SF[11] + P[3][10]*SF[10] + P[10][10]*SF[14] + P[11][10]*SF[15] + P[12][10]*SPP[10]) + SF[15]*(P[0][11] + P[1][11]*SF[9] + P[2][11]*SF[11] + P[3][11]*SF[10] + P[10][11]*SF[14] + P[11][11]*SF[15] + P[12][11]*SPP[10]) + SPP[10]*(P[0][12] + P[1][12]*SF[9] + P[2][12]*SF[11] + P[3][12]*SF[10] + P[10][12]*SF[14] + P[11][12]*SF[15] + P[12][12]*SPP[10]) + (dayVar*sq(q2))/4 + (dazVar*sq(q3))/4;
@@ -711,7 +711,7 @@ void Ekf::fixCovarianceErrors()
 	// and set corresponding entries in Q to zero when states exceed 50% of the limit
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
-	float P_lim[8] = {};
+	ecl_float_t P_lim[8];
 	P_lim[0] = 1.0f;		// quaternion max var
 	P_lim[1] = 1e6f;		// velocity max var
 	P_lim[2] = 1e6f;		// positiion max var
@@ -723,22 +723,22 @@ void Ekf::fixCovarianceErrors()
 
 	for (int i = 0; i <= 3; i++) {
 		// quaternion states
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[0]);
+		P[i][i] = math::constrain(P[i][i], 0.0, P_lim[0]);
 	}
 
 	for (int i = 4; i <= 6; i++) {
 		// NED velocity states
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[1]);
+		P[i][i] = math::constrain(P[i][i], 0.0, P_lim[1]);
 	}
 
 	for (int i = 7; i <= 9; i++) {
 		// NED position states
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[2]);
+		P[i][i] = math::constrain(P[i][i], 0.0, P_lim[2]);
 	}
 
 	for (int i = 10; i <= 12; i++) {
 		// gyro bias states
-		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[3]);
+		P[i][i] = math::constrain(P[i][i], 0.0, P_lim[3]);
 	}
 
 	// force symmetry on the quaternion, velocity and positon state covariances
@@ -771,7 +771,7 @@ void Ekf::fixCovarianceErrors()
 		// not exceed 100 and the minimum variance must not fall below the target minimum
 		// Also limit variance to a maximum equivalent to a 0.1g uncertainty
 		const float minStateVarTarget = 5E-8f;
-		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
+		ecl_float_t minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
 			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar, sq(0.1f * CONSTANTS_ONE_G * _dt_ekf_avg));
@@ -848,11 +848,11 @@ void Ekf::fixCovarianceErrors()
 	} else {
 		// constrain variances
 		for (int i = 16; i <= 18; i++) {
-			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[5]);
+			P[i][i] = math::constrain(P[i][i], 0.0, P_lim[5]);
 		}
 
 		for (int i = 19; i <= 21; i++) {
-			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[6]);
+			P[i][i] = math::constrain(P[i][i], 0.0, P_lim[6]);
 		}
 
 		// force symmetry
@@ -867,7 +867,7 @@ void Ekf::fixCovarianceErrors()
 	} else {
 		// constrain variances
 		for (int i = 22; i <= 23; i++) {
-			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[7]);
+			P[i][i] = math::constrain(P[i][i], 0.0, P_lim[7]);
 		}
 
 		// force symmetry

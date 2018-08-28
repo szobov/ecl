@@ -46,26 +46,26 @@
 
 void Ekf::fuseSideslip()
 {
-	float SH_BETA[13] = {}; // Varialbe used to optimise calculations of measurement jacobian
-	float H_BETA[24] = {}; // Observation Jacobian
-	float SK_BETA[8] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
-	float Kfusion[24] = {}; // Kalman gain vector
-	float R_BETA = _params.beta_noise;
+	ecl_float_t SH_BETA[13] = {}; // Varialbe used to optimise calculations of measurement jacobian
+	ecl_float_t H_BETA[24] = {}; // Observation Jacobian
+	ecl_float_t SK_BETA[8] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
+	ecl_float_t Kfusion[24] = {}; // Kalman gain vector
+	ecl_float_t R_BETA = _params.beta_noise;
 
 	// get latest estimated orientation
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	ecl_float_t q0 = _state.quat_nominal(0);
+	ecl_float_t q1 = _state.quat_nominal(1);
+	ecl_float_t q2 = _state.quat_nominal(2);
+	ecl_float_t q3 = _state.quat_nominal(3);
 
 	// get latest velocity in earth frame
-	float vn = _state.vel(0);
-	float ve = _state.vel(1);
-	float vd = _state.vel(2);
+	ecl_float_t vn = _state.vel(0);
+	ecl_float_t ve = _state.vel(1);
+	ecl_float_t vd = _state.vel(2);
 
 	// get latest wind velocity in earth frame
-	float vwn = _state.wind_vel(0);
-	float vwe = _state.wind_vel(1);
+	ecl_float_t vwn = _state.wind_vel(0);
+	ecl_float_t vwe = _state.wind_vel(1);
 
 	// relative wind velocity in earth frame
 	Vector3f rel_wind;

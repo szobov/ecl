@@ -40,18 +40,20 @@
  *
  */
 
+#include <ecl.h>
 #include <matrix/math.hpp>
 
 namespace estimator
 {
 
-using matrix::AxisAnglef;
-using matrix::Dcmf;
-using matrix::Eulerf;
-using matrix::Matrix3f;
-using matrix::Quatf;
-using matrix::Vector2f;
-using matrix::Vector3f;
+using AxisAnglef = matrix::AxisAngle<ecl_float_t>;
+using Dcmf = matrix::Dcm<ecl_float_t>;
+using Eulerf = matrix::Euler<ecl_float_t>;
+using Matrix3f = matrix::Matrix<ecl_float_t, 3, 3>;
+using Quatf = matrix::Quaternion<ecl_float_t>;
+using Vector2f = matrix::Vector2<ecl_float_t>;
+using Vector3f = matrix::Vector3<ecl_float_t>;
+
 using matrix::wrap_pi;
 
 struct gps_message {
@@ -80,8 +82,8 @@ struct flow_message {
 struct ext_vision_message {
 	Vector3f posNED;	///< measured NED position relative to the local origin (m)
 	Quatf quat;		///< measured quaternion orientation defining rotation from NED to body frame
-	float posErr;		///< 1-Sigma spherical position accuracy (m)
-	float angErr;		///< 1-Sigma angular error (rad)
+	ecl_float_t posErr;		///< 1-Sigma spherical position accuracy (m)
+	ecl_float_t angErr;		///< 1-Sigma angular error (rad)
 };
 
 struct outputSample {
@@ -92,17 +94,17 @@ struct outputSample {
 };
 
 struct outputVert {
-	float	    vel_d;		///< D velocity calculated using alternative algorithm (m/sec)
-	float	    vel_d_integ;	///< Integral of vel_d (m)
-	float	    dt;			///< delta time (sec)
+	ecl_float_t	    vel_d;		///< D velocity calculated using alternative algorithm (m/sec)
+	ecl_float_t	    vel_d_integ;	///< Integral of vel_d (m)
+	ecl_float_t	    dt;			///< delta time (sec)
 	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 };
 
 struct imuSample {
 	Vector3f    delta_ang;		///< delta angle in body frame (integrated gyro measurements) (rad)
 	Vector3f    delta_vel;		///< delta velocity in body frame (integrated accelerometer measurements) (m/sec)
-	float       delta_ang_dt;	///< delta angle integration period (sec)
-	float       delta_vel_dt;	///< delta velocity integration period (sec)
+	ecl_float_t       delta_ang_dt;	///< delta angle integration period (sec)
+	ecl_float_t       delta_vel_dt;	///< delta velocity integration period (sec)
 	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 };
 

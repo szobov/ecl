@@ -348,11 +348,11 @@ void Ekf::predictState()
 	constrainStates();
 
 	// calculate an average filter update time
-	float input = 0.5f * (_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
+	ecl_float_t input = 0.5 * (_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 
 	// filter and limit input between -50% and +100% of nominal value
-	input = math::constrain(input, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
-	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
+	input = math::constrain(input, 0.5 * FILTER_UPDATE_PERIOD_S, 2.0 * FILTER_UPDATE_PERIOD_S);
+	_dt_ekf_avg = 0.99 * _dt_ekf_avg + 0.01 * input;
 }
 
 bool Ekf::collect_imu(const imuSample &imu)
@@ -566,8 +566,8 @@ void Ekf::calculateOutputStates()
 		 */
 
 		// Complementary filter gains
-		const float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
-		const float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
+		const ecl_float_t vel_gain = _dt_ekf_avg / math::constrain((ecl_float_t)_params.vel_Tau, _dt_ekf_avg, 10.0);
+		const ecl_float_t pos_gain = _dt_ekf_avg / math::constrain((ecl_float_t)_params.pos_Tau, _dt_ekf_avg, 10.0);
 		{
 			/*
 			 * Calculate a correction to be applied to vel_d that casues vel_d_integ to track the EKF

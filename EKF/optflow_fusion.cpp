@@ -122,7 +122,7 @@ void Ekf::fuseOptFlow()
 		if (obs_index == 0) {
 
 			// calculate X axis observation Jacobian
-			float t2 = 1.0f / range;
+			ecl_float_t t2 = 1.0f / range;
 			H_LOS[0][0] = t2*(q1*vd*2.0f+q0*ve*2.0f-q3*vn*2.0f);
 			H_LOS[0][1] = t2*(q0*vd*2.0f-q1*ve*2.0f+q2*vn*2.0f);
 			H_LOS[0][2] = t2*(q3*vd*2.0f+q2*ve*2.0f+q1*vn*2.0f);
@@ -132,98 +132,98 @@ void Ekf::fuseOptFlow()
 			H_LOS[0][6] = t2*(q0*q1*2.0f+q2*q3*2.0f);
 
 			// calculate intermediate variables for the X observaton innovatoin variance and Kalman gains
-			float t3 = q1*vd*2.0f;
-			float t4 = q0*ve*2.0f;
-			float t11 = q3*vn*2.0f;
-			float t5 = t3+t4-t11;
-			float t6 = q0*q3*2.0f;
-			float t29 = q1*q2*2.0f;
-			float t7 = t6-t29;
-			float t8 = q0*q1*2.0f;
-			float t9 = q2*q3*2.0f;
-			float t10 = t8+t9;
-			float t12 = P[0][0]*t2*t5;
-			float t13 = q0*vd*2.0f;
-			float t14 = q2*vn*2.0f;
-			float t28 = q1*ve*2.0f;
-			float t15 = t13+t14-t28;
-			float t16 = q3*vd*2.0f;
-			float t17 = q2*ve*2.0f;
-			float t18 = q1*vn*2.0f;
-			float t19 = t16+t17+t18;
-			float t20 = q3*ve*2.0f;
-			float t21 = q0*vn*2.0f;
-			float t30 = q2*vd*2.0f;
-			float t22 = t20+t21-t30;
-			float t23 = q0*q0;
-			float t24 = q1*q1;
-			float t25 = q2*q2;
-			float t26 = q3*q3;
-			float t27 = t23-t24+t25-t26;
-			float t31 = P[1][1]*t2*t15;
-			float t32 = P[6][0]*t2*t10;
-			float t33 = P[1][0]*t2*t15;
-			float t34 = P[2][0]*t2*t19;
-			float t35 = P[5][0]*t2*t27;
-			float t79 = P[4][0]*t2*t7;
-			float t80 = P[3][0]*t2*t22;
-			float t36 = t12+t32+t33+t34+t35-t79-t80;
-			float t37 = t2*t5*t36;
-			float t38 = P[6][1]*t2*t10;
-			float t39 = P[0][1]*t2*t5;
-			float t40 = P[2][1]*t2*t19;
-			float t41 = P[5][1]*t2*t27;
-			float t81 = P[4][1]*t2*t7;
-			float t82 = P[3][1]*t2*t22;
-			float t42 = t31+t38+t39+t40+t41-t81-t82;
-			float t43 = t2*t15*t42;
-			float t44 = P[6][2]*t2*t10;
-			float t45 = P[0][2]*t2*t5;
-			float t46 = P[1][2]*t2*t15;
-			float t47 = P[2][2]*t2*t19;
-			float t48 = P[5][2]*t2*t27;
-			float t83 = P[4][2]*t2*t7;
-			float t84 = P[3][2]*t2*t22;
-			float t49 = t44+t45+t46+t47+t48-t83-t84;
-			float t50 = t2*t19*t49;
-			float t51 = P[6][3]*t2*t10;
-			float t52 = P[0][3]*t2*t5;
-			float t53 = P[1][3]*t2*t15;
-			float t54 = P[2][3]*t2*t19;
-			float t55 = P[5][3]*t2*t27;
-			float t85 = P[4][3]*t2*t7;
-			float t86 = P[3][3]*t2*t22;
-			float t56 = t51+t52+t53+t54+t55-t85-t86;
-			float t57 = P[6][5]*t2*t10;
-			float t58 = P[0][5]*t2*t5;
-			float t59 = P[1][5]*t2*t15;
-			float t60 = P[2][5]*t2*t19;
-			float t61 = P[5][5]*t2*t27;
-			float t88 = P[4][5]*t2*t7;
-			float t89 = P[3][5]*t2*t22;
-			float t62 = t57+t58+t59+t60+t61-t88-t89;
-			float t63 = t2*t27*t62;
-			float t64 = P[6][4]*t2*t10;
-			float t65 = P[0][4]*t2*t5;
-			float t66 = P[1][4]*t2*t15;
-			float t67 = P[2][4]*t2*t19;
-			float t68 = P[5][4]*t2*t27;
-			float t90 = P[4][4]*t2*t7;
-			float t91 = P[3][4]*t2*t22;
-			float t69 = t64+t65+t66+t67+t68-t90-t91;
-			float t70 = P[6][6]*t2*t10;
-			float t71 = P[0][6]*t2*t5;
-			float t72 = P[1][6]*t2*t15;
-			float t73 = P[2][6]*t2*t19;
-			float t74 = P[5][6]*t2*t27;
-			float t93 = P[4][6]*t2*t7;
-			float t94 = P[3][6]*t2*t22;
-			float t75 = t70+t71+t72+t73+t74-t93-t94;
-			float t76 = t2*t10*t75;
-			float t87 = t2*t22*t56;
-			float t92 = t2*t7*t69;
-			float t77 = R_LOS+t37+t43+t50+t63+t76-t87-t92;
-			float t78;
+			ecl_float_t t3 = q1*vd*2.0f;
+			ecl_float_t t4 = q0*ve*2.0f;
+			ecl_float_t t11 = q3*vn*2.0f;
+			ecl_float_t t5 = t3+t4-t11;
+			ecl_float_t t6 = q0*q3*2.0f;
+			ecl_float_t t29 = q1*q2*2.0f;
+			ecl_float_t t7 = t6-t29;
+			ecl_float_t t8 = q0*q1*2.0f;
+			ecl_float_t t9 = q2*q3*2.0f;
+			ecl_float_t t10 = t8+t9;
+			ecl_float_t t12 = P[0][0]*t2*t5;
+			ecl_float_t t13 = q0*vd*2.0f;
+			ecl_float_t t14 = q2*vn*2.0f;
+			ecl_float_t t28 = q1*ve*2.0f;
+			ecl_float_t t15 = t13+t14-t28;
+			ecl_float_t t16 = q3*vd*2.0f;
+			ecl_float_t t17 = q2*ve*2.0f;
+			ecl_float_t t18 = q1*vn*2.0f;
+			ecl_float_t t19 = t16+t17+t18;
+			ecl_float_t t20 = q3*ve*2.0f;
+			ecl_float_t t21 = q0*vn*2.0f;
+			ecl_float_t t30 = q2*vd*2.0f;
+			ecl_float_t t22 = t20+t21-t30;
+			ecl_float_t t23 = q0*q0;
+			ecl_float_t t24 = q1*q1;
+			ecl_float_t t25 = q2*q2;
+			ecl_float_t t26 = q3*q3;
+			ecl_float_t t27 = t23-t24+t25-t26;
+			ecl_float_t t31 = P[1][1]*t2*t15;
+			ecl_float_t t32 = P[6][0]*t2*t10;
+			ecl_float_t t33 = P[1][0]*t2*t15;
+			ecl_float_t t34 = P[2][0]*t2*t19;
+			ecl_float_t t35 = P[5][0]*t2*t27;
+			ecl_float_t t79 = P[4][0]*t2*t7;
+			ecl_float_t t80 = P[3][0]*t2*t22;
+			ecl_float_t t36 = t12+t32+t33+t34+t35-t79-t80;
+			ecl_float_t t37 = t2*t5*t36;
+			ecl_float_t t38 = P[6][1]*t2*t10;
+			ecl_float_t t39 = P[0][1]*t2*t5;
+			ecl_float_t t40 = P[2][1]*t2*t19;
+			ecl_float_t t41 = P[5][1]*t2*t27;
+			ecl_float_t t81 = P[4][1]*t2*t7;
+			ecl_float_t t82 = P[3][1]*t2*t22;
+			ecl_float_t t42 = t31+t38+t39+t40+t41-t81-t82;
+			ecl_float_t t43 = t2*t15*t42;
+			ecl_float_t t44 = P[6][2]*t2*t10;
+			ecl_float_t t45 = P[0][2]*t2*t5;
+			ecl_float_t t46 = P[1][2]*t2*t15;
+			ecl_float_t t47 = P[2][2]*t2*t19;
+			ecl_float_t t48 = P[5][2]*t2*t27;
+			ecl_float_t t83 = P[4][2]*t2*t7;
+			ecl_float_t t84 = P[3][2]*t2*t22;
+			ecl_float_t t49 = t44+t45+t46+t47+t48-t83-t84;
+			ecl_float_t t50 = t2*t19*t49;
+			ecl_float_t t51 = P[6][3]*t2*t10;
+			ecl_float_t t52 = P[0][3]*t2*t5;
+			ecl_float_t t53 = P[1][3]*t2*t15;
+			ecl_float_t t54 = P[2][3]*t2*t19;
+			ecl_float_t t55 = P[5][3]*t2*t27;
+			ecl_float_t t85 = P[4][3]*t2*t7;
+			ecl_float_t t86 = P[3][3]*t2*t22;
+			ecl_float_t t56 = t51+t52+t53+t54+t55-t85-t86;
+			ecl_float_t t57 = P[6][5]*t2*t10;
+			ecl_float_t t58 = P[0][5]*t2*t5;
+			ecl_float_t t59 = P[1][5]*t2*t15;
+			ecl_float_t t60 = P[2][5]*t2*t19;
+			ecl_float_t t61 = P[5][5]*t2*t27;
+			ecl_float_t t88 = P[4][5]*t2*t7;
+			ecl_float_t t89 = P[3][5]*t2*t22;
+			ecl_float_t t62 = t57+t58+t59+t60+t61-t88-t89;
+			ecl_float_t t63 = t2*t27*t62;
+			ecl_float_t t64 = P[6][4]*t2*t10;
+			ecl_float_t t65 = P[0][4]*t2*t5;
+			ecl_float_t t66 = P[1][4]*t2*t15;
+			ecl_float_t t67 = P[2][4]*t2*t19;
+			ecl_float_t t68 = P[5][4]*t2*t27;
+			ecl_float_t t90 = P[4][4]*t2*t7;
+			ecl_float_t t91 = P[3][4]*t2*t22;
+			ecl_float_t t69 = t64+t65+t66+t67+t68-t90-t91;
+			ecl_float_t t70 = P[6][6]*t2*t10;
+			ecl_float_t t71 = P[0][6]*t2*t5;
+			ecl_float_t t72 = P[1][6]*t2*t15;
+			ecl_float_t t73 = P[2][6]*t2*t19;
+			ecl_float_t t74 = P[5][6]*t2*t27;
+			ecl_float_t t93 = P[4][6]*t2*t7;
+			ecl_float_t t94 = P[3][6]*t2*t22;
+			ecl_float_t t75 = t70+t71+t72+t73+t74-t93-t94;
+			ecl_float_t t76 = t2*t10*t75;
+			ecl_float_t t87 = t2*t22*t56;
+			ecl_float_t t92 = t2*t7*t69;
+			ecl_float_t t77 = R_LOS+t37+t43+t50+t63+t76-t87-t92;
+			ecl_float_t t78;
 
 			// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
@@ -268,7 +268,7 @@ void Ekf::fuseOptFlow()
 		} else if (obs_index == 1) {
 
 			// calculate Y axis observation Jacobian
-			float t2 = 1.0f / range;
+			ecl_float_t t2 = 1.0f / range;
 			H_LOS[1][0] = -t2*(q2*vd*-2.0f+q3*ve*2.0f+q0*vn*2.0f);
 			H_LOS[1][1] = -t2*(q3*vd*2.0f+q2*ve*2.0f+q1*vn*2.0f);
 			H_LOS[1][2] = t2*(q0*vd*2.0f-q1*ve*2.0f+q2*vn*2.0f);
@@ -278,98 +278,98 @@ void Ekf::fuseOptFlow()
 			H_LOS[1][6] = t2*(q0*q2*2.0f-q1*q3*2.0f);
 
 			// calculate intermediate variables for the Y observaton innovatoin variance and Kalman gains
-			float t3 = q3*ve*2.0f;
-			float t4 = q0*vn*2.0f;
-			float t11 = q2*vd*2.0f;
-			float t5 = t3+t4-t11;
-			float t6 = q0*q3*2.0f;
-			float t7 = q1*q2*2.0f;
-			float t8 = t6+t7;
-			float t9 = q0*q2*2.0f;
-			float t28 = q1*q3*2.0f;
-			float t10 = t9-t28;
-			float t12 = P[0][0]*t2*t5;
-			float t13 = q3*vd*2.0f;
-			float t14 = q2*ve*2.0f;
-			float t15 = q1*vn*2.0f;
-			float t16 = t13+t14+t15;
-			float t17 = q0*vd*2.0f;
-			float t18 = q2*vn*2.0f;
-			float t29 = q1*ve*2.0f;
-			float t19 = t17+t18-t29;
-			float t20 = q1*vd*2.0f;
-			float t21 = q0*ve*2.0f;
-			float t30 = q3*vn*2.0f;
-			float t22 = t20+t21-t30;
-			float t23 = q0*q0;
-			float t24 = q1*q1;
-			float t25 = q2*q2;
-			float t26 = q3*q3;
-			float t27 = t23+t24-t25-t26;
-			float t31 = P[1][1]*t2*t16;
-			float t32 = P[5][0]*t2*t8;
-			float t33 = P[1][0]*t2*t16;
-			float t34 = P[3][0]*t2*t22;
-			float t35 = P[4][0]*t2*t27;
-			float t80 = P[6][0]*t2*t10;
-			float t81 = P[2][0]*t2*t19;
-			float t36 = t12+t32+t33+t34+t35-t80-t81;
-			float t37 = t2*t5*t36;
-			float t38 = P[5][1]*t2*t8;
-			float t39 = P[0][1]*t2*t5;
-			float t40 = P[3][1]*t2*t22;
-			float t41 = P[4][1]*t2*t27;
-			float t82 = P[6][1]*t2*t10;
-			float t83 = P[2][1]*t2*t19;
-			float t42 = t31+t38+t39+t40+t41-t82-t83;
-			float t43 = t2*t16*t42;
-			float t44 = P[5][2]*t2*t8;
-			float t45 = P[0][2]*t2*t5;
-			float t46 = P[1][2]*t2*t16;
-			float t47 = P[3][2]*t2*t22;
-			float t48 = P[4][2]*t2*t27;
-			float t79 = P[2][2]*t2*t19;
-			float t84 = P[6][2]*t2*t10;
-			float t49 = t44+t45+t46+t47+t48-t79-t84;
-			float t50 = P[5][3]*t2*t8;
-			float t51 = P[0][3]*t2*t5;
-			float t52 = P[1][3]*t2*t16;
-			float t53 = P[3][3]*t2*t22;
-			float t54 = P[4][3]*t2*t27;
-			float t86 = P[6][3]*t2*t10;
-			float t87 = P[2][3]*t2*t19;
-			float t55 = t50+t51+t52+t53+t54-t86-t87;
-			float t56 = t2*t22*t55;
-			float t57 = P[5][4]*t2*t8;
-			float t58 = P[0][4]*t2*t5;
-			float t59 = P[1][4]*t2*t16;
-			float t60 = P[3][4]*t2*t22;
-			float t61 = P[4][4]*t2*t27;
-			float t88 = P[6][4]*t2*t10;
-			float t89 = P[2][4]*t2*t19;
-			float t62 = t57+t58+t59+t60+t61-t88-t89;
-			float t63 = t2*t27*t62;
-			float t64 = P[5][5]*t2*t8;
-			float t65 = P[0][5]*t2*t5;
-			float t66 = P[1][5]*t2*t16;
-			float t67 = P[3][5]*t2*t22;
-			float t68 = P[4][5]*t2*t27;
-			float t90 = P[6][5]*t2*t10;
-			float t91 = P[2][5]*t2*t19;
-			float t69 = t64+t65+t66+t67+t68-t90-t91;
-			float t70 = t2*t8*t69;
-			float t71 = P[5][6]*t2*t8;
-			float t72 = P[0][6]*t2*t5;
-			float t73 = P[1][6]*t2*t16;
-			float t74 = P[3][6]*t2*t22;
-			float t75 = P[4][6]*t2*t27;
-			float t92 = P[6][6]*t2*t10;
-			float t93 = P[2][6]*t2*t19;
-			float t76 = t71+t72+t73+t74+t75-t92-t93;
-			float t85 = t2*t19*t49;
-			float t94 = t2*t10*t76;
-			float t77 = R_LOS+t37+t43+t56+t63+t70-t85-t94;
-			float t78;
+			ecl_float_t t3 = q3*ve*2.0f;
+			ecl_float_t t4 = q0*vn*2.0f;
+			ecl_float_t t11 = q2*vd*2.0f;
+			ecl_float_t t5 = t3+t4-t11;
+			ecl_float_t t6 = q0*q3*2.0f;
+			ecl_float_t t7 = q1*q2*2.0f;
+			ecl_float_t t8 = t6+t7;
+			ecl_float_t t9 = q0*q2*2.0f;
+			ecl_float_t t28 = q1*q3*2.0f;
+			ecl_float_t t10 = t9-t28;
+			ecl_float_t t12 = P[0][0]*t2*t5;
+			ecl_float_t t13 = q3*vd*2.0f;
+			ecl_float_t t14 = q2*ve*2.0f;
+			ecl_float_t t15 = q1*vn*2.0f;
+			ecl_float_t t16 = t13+t14+t15;
+			ecl_float_t t17 = q0*vd*2.0f;
+			ecl_float_t t18 = q2*vn*2.0f;
+			ecl_float_t t29 = q1*ve*2.0f;
+			ecl_float_t t19 = t17+t18-t29;
+			ecl_float_t t20 = q1*vd*2.0f;
+			ecl_float_t t21 = q0*ve*2.0f;
+			ecl_float_t t30 = q3*vn*2.0f;
+			ecl_float_t t22 = t20+t21-t30;
+			ecl_float_t t23 = q0*q0;
+			ecl_float_t t24 = q1*q1;
+			ecl_float_t t25 = q2*q2;
+			ecl_float_t t26 = q3*q3;
+			ecl_float_t t27 = t23+t24-t25-t26;
+			ecl_float_t t31 = P[1][1]*t2*t16;
+			ecl_float_t t32 = P[5][0]*t2*t8;
+			ecl_float_t t33 = P[1][0]*t2*t16;
+			ecl_float_t t34 = P[3][0]*t2*t22;
+			ecl_float_t t35 = P[4][0]*t2*t27;
+			ecl_float_t t80 = P[6][0]*t2*t10;
+			ecl_float_t t81 = P[2][0]*t2*t19;
+			ecl_float_t t36 = t12+t32+t33+t34+t35-t80-t81;
+			ecl_float_t t37 = t2*t5*t36;
+			ecl_float_t t38 = P[5][1]*t2*t8;
+			ecl_float_t t39 = P[0][1]*t2*t5;
+			ecl_float_t t40 = P[3][1]*t2*t22;
+			ecl_float_t t41 = P[4][1]*t2*t27;
+			ecl_float_t t82 = P[6][1]*t2*t10;
+			ecl_float_t t83 = P[2][1]*t2*t19;
+			ecl_float_t t42 = t31+t38+t39+t40+t41-t82-t83;
+			ecl_float_t t43 = t2*t16*t42;
+			ecl_float_t t44 = P[5][2]*t2*t8;
+			ecl_float_t t45 = P[0][2]*t2*t5;
+			ecl_float_t t46 = P[1][2]*t2*t16;
+			ecl_float_t t47 = P[3][2]*t2*t22;
+			ecl_float_t t48 = P[4][2]*t2*t27;
+			ecl_float_t t79 = P[2][2]*t2*t19;
+			ecl_float_t t84 = P[6][2]*t2*t10;
+			ecl_float_t t49 = t44+t45+t46+t47+t48-t79-t84;
+			ecl_float_t t50 = P[5][3]*t2*t8;
+			ecl_float_t t51 = P[0][3]*t2*t5;
+			ecl_float_t t52 = P[1][3]*t2*t16;
+			ecl_float_t t53 = P[3][3]*t2*t22;
+			ecl_float_t t54 = P[4][3]*t2*t27;
+			ecl_float_t t86 = P[6][3]*t2*t10;
+			ecl_float_t t87 = P[2][3]*t2*t19;
+			ecl_float_t t55 = t50+t51+t52+t53+t54-t86-t87;
+			ecl_float_t t56 = t2*t22*t55;
+			ecl_float_t t57 = P[5][4]*t2*t8;
+			ecl_float_t t58 = P[0][4]*t2*t5;
+			ecl_float_t t59 = P[1][4]*t2*t16;
+			ecl_float_t t60 = P[3][4]*t2*t22;
+			ecl_float_t t61 = P[4][4]*t2*t27;
+			ecl_float_t t88 = P[6][4]*t2*t10;
+			ecl_float_t t89 = P[2][4]*t2*t19;
+			ecl_float_t t62 = t57+t58+t59+t60+t61-t88-t89;
+			ecl_float_t t63 = t2*t27*t62;
+			ecl_float_t t64 = P[5][5]*t2*t8;
+			ecl_float_t t65 = P[0][5]*t2*t5;
+			ecl_float_t t66 = P[1][5]*t2*t16;
+			ecl_float_t t67 = P[3][5]*t2*t22;
+			ecl_float_t t68 = P[4][5]*t2*t27;
+			ecl_float_t t90 = P[6][5]*t2*t10;
+			ecl_float_t t91 = P[2][5]*t2*t19;
+			ecl_float_t t69 = t64+t65+t66+t67+t68-t90-t91;
+			ecl_float_t t70 = t2*t8*t69;
+			ecl_float_t t71 = P[5][6]*t2*t8;
+			ecl_float_t t72 = P[0][6]*t2*t5;
+			ecl_float_t t73 = P[1][6]*t2*t16;
+			ecl_float_t t74 = P[3][6]*t2*t22;
+			ecl_float_t t75 = P[4][6]*t2*t27;
+			ecl_float_t t92 = P[6][6]*t2*t10;
+			ecl_float_t t93 = P[2][6]*t2*t19;
+			ecl_float_t t76 = t71+t72+t73+t74+t75-t92-t93;
+			ecl_float_t t85 = t2*t19*t49;
+			ecl_float_t t94 = t2*t10*t76;
+			ecl_float_t t77 = R_LOS+t37+t43+t56+t63+t70-t85-t94;
+			ecl_float_t t78;
 			// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
 				t78 = 1.0f / t77;
@@ -436,7 +436,7 @@ void Ekf::fuseOptFlow()
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 
 		// copy the Kalman gain vector for the axis we are fusing
-		float gain[24];
+		ecl_float_t gain[24];
 
 		for (unsigned row = 0; row <= 23; row++) {
 			gain[row] = Kfusion[row][obs_index];
@@ -445,8 +445,8 @@ void Ekf::fuseOptFlow()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		float KHP[_k_num_states][_k_num_states];
-		float KH[7];
+		ecl_float_t KHP[_k_num_states][_k_num_states];
+		ecl_float_t KH[7];
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
 
@@ -459,7 +459,7 @@ void Ekf::fuseOptFlow()
 			KH[6] = gain[row] * H_LOS[obs_index][6];
 
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				float tmp = KH[0] * P[0][column];
+				ecl_float_t tmp = KH[0] * P[0][column];
 				tmp += KH[1] * P[1][column];
 				tmp += KH[2] * P[2][column];
 				tmp += KH[3] * P[3][column];
@@ -557,19 +557,16 @@ bool Ekf::calcOptFlowBodyRateComp()
 		if ((fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f) && (_delta_time_of > FLT_EPSILON)) {
 			// calculate a reference angular rate
 			Vector3f reference_body_rate;
-			reference_body_rate = _imu_del_ang_of * (1.0f / _delta_time_of);
+			reference_body_rate = _imu_del_ang_of * (1.0 / _delta_time_of);
 
 			// calculate the optical flow sensor measured body rate
 			Vector3f of_body_rate;
-			of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt);
+			of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0 / _flow_sample_delayed.dt);
 
 			// calculate the bias estimate using  a combined LPF and spike filter
-			_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
-					     -0.1f, 0.1f);
-			_flow_gyro_bias(1) = 0.99f * _flow_gyro_bias(1) + 0.01f * math::constrain((of_body_rate(1) - reference_body_rate(1)),
-					     -0.1f, 0.1f);
-			_flow_gyro_bias(2) = 0.99f * _flow_gyro_bias(2) + 0.01f * math::constrain((of_body_rate(2) - reference_body_rate(2)),
-					     -0.1f, 0.1f);
+			_flow_gyro_bias(0) = 0.99 * _flow_gyro_bias(0) + 0.01 * math::constrain((of_body_rate(0) - reference_body_rate(0)), -0.1, 0.1);
+			_flow_gyro_bias(1) = 0.99 * _flow_gyro_bias(1) + 0.01 * math::constrain((of_body_rate(1) - reference_body_rate(1)), -0.1, 0.1);
+			_flow_gyro_bias(2) = 0.99 * _flow_gyro_bias(2) + 0.01 * math::constrain((of_body_rate(2) - reference_body_rate(2)), -0.1, 0.1);
 		}
 
 	} else {
