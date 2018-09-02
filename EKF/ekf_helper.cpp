@@ -58,7 +58,7 @@ bool Ekf::resetVelocity()
 		_state.vel = _gps_sample_delayed.vel;
 
 		// use GPS accuracy to reset variances
-		setDiag(P, 4, 6, sq(_gps_sample_delayed.sacc));
+		setDiag(4, 6, sq(_gps_sample_delayed.sacc));
 
 	} else if (_control_status.flags.opt_flow) {
 		// constrain height above ground to be above minimum possible
@@ -89,21 +89,22 @@ bool Ekf::resetVelocity()
 		}
 
 		// reset the velocity covariance terms
-		zeroRows(P, 4, 5);
-		zeroCols(P, 4, 5);
+		zeroRows(4, 5);
+		zeroCols(4, 5);
 
 		// reset the horizontal velocity variance using the optical flow noise variance
 		P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 
 	} else if (_control_status.flags.ev_pos) {
 		_state.vel.setZero();
-		zeroOffDiag(P, 4, 6);
+		zeroOffDiag(4, 6);
 
 	} else {
 		// Used when falling back to non-aiding mode of operation
 		_state.vel(0) = 0.0f;
 		_state.vel(1) = 0.0f;
-		setDiag(P, 4, 5, 25.0f);
+
+		setDiag(4, 5, 25.0f);
 	}
 
 	// calculate the change in velocity and apply to the output predictor state history
@@ -145,7 +146,7 @@ bool Ekf::resetPosition()
 		_state.pos(1) = _gps_sample_delayed.pos(1);
 
 		// use GPS accuracy to reset variances
-		setDiag(P, 7, 8, sq(_gps_sample_delayed.hacc));
+		setDiag(7, 8, sq(_gps_sample_delayed.hacc));
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
@@ -153,7 +154,7 @@ bool Ekf::resetPosition()
 		_state.pos(1) = _ev_sample_delayed.posNED(1);
 
 		// use EV accuracy to reset variances
-		setDiag(P, 7, 8, sq(_ev_sample_delayed.posErr));
+		setDiag(7, 8, sq(_ev_sample_delayed.posErr));
 
 	} else if (_control_status.flags.opt_flow) {
 		if (!_control_status.flags.in_air) {
@@ -169,14 +170,15 @@ bool Ekf::resetPosition()
 		}
 
 		// estimate is relative to initial positon in this mode, so we start with zero error.
-		zeroCols(P,7,8);
-		zeroRows(P,7,8);
+		zeroCols(7, 8);
+		zeroRows(7, 8);
 
 	} else {
 		// Used when falling back to non-aiding mode of operation
 		_state.pos(0) = _last_known_posNE(0);
 		_state.pos(1) = _last_known_posNE(1);
-		setDiag(P, 7, 8, sq(_params.pos_noaid_noise));
+
+		setDiag(7, 8, sq(_params.pos_noaid_noise));
 	}
 
 	// calculate the change in position and apply to the output predictor state history
@@ -227,8 +229,8 @@ void Ekf::resetHeight()
 			_state.pos(2) = new_pos_down;
 
 			// reset the associated covariance values
-			zeroRows(P, 9, 9);
-			zeroCols(P, 9, 9);
+			zeroRows(9, 9);
+			zeroCols(9, 9);
 
 			// the state variance is the same as the observation
 			P[9][9] = sq(_params.range_noise);
@@ -252,8 +254,8 @@ void Ekf::resetHeight()
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 
 			// reset the associated covariance values
-			zeroRows(P, 9, 9);
-			zeroCols(P, 9, 9);
+			zeroRows(9, 9);
+			zeroCols(9, 9);
 
 			// the state variance is the same as the observation
 			P[9][9] = sq(_params.baro_noise);
@@ -270,8 +272,8 @@ void Ekf::resetHeight()
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 
 			// reset the associated covarince values
-			zeroRows(P, 9, 9);
-			zeroCols(P, 9, 9);
+			zeroRows(9, 9);
+			zeroCols(9, 9);
 
 			// the state variance is the same as the observation
 			P[9][9] = sq(gps_newest.hacc);
@@ -306,8 +308,8 @@ void Ekf::resetHeight()
 	}
 
 	// reset the vertical velocity covariance values
-	zeroRows(P, 6, 6);
-	zeroCols(P, 6, 6);
+	zeroRows(6, 6);
+	zeroCols(6, 6);
 
 	// reset the vertical velocity state
 	if (_control_status.flags.gps && (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL)) {
@@ -488,8 +490,8 @@ bool Ekf::realignYawGPS()
 			initialiseQuatCovariances(angle_err_var_vec);
 
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-			zeroRows(P, 16, 21);
-			zeroCols(P, 16, 21);
+			zeroRows(16, 21);
+			zeroCols(16, 21);
 
 			for (uint8_t index = 16; index <= 21; index ++) {
 				P[index][index] = sq(_params.mag_noise);
@@ -522,8 +524,8 @@ bool Ekf::realignYawGPS()
 			_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
 
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-			zeroRows(P, 16, 21);
-			zeroCols(P, 16, 21);
+			zeroRows(16, 21);
+			zeroCols(16, 21);
 
 			for (uint8_t index = 16; index <= 21; index ++) {
 				P[index][index] = sq(_params.mag_noise);
@@ -663,8 +665,8 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	_state.mag_I = _R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-	zeroRows(P, 16, 21);
-	zeroCols(P, 16, 21);
+	zeroRows(16, 21);
+	zeroCols(16, 21);
 
 	for (uint8_t index = 16; index <= 21; index ++) {
 		P[index][index] = sq(_params.mag_noise);
@@ -1131,8 +1133,8 @@ bool Ekf::reset_imu_bias()
 	_state.accel_bias.zero();
 
 	// Zero the corresponding covariances
-	zeroCols(P, 10, 15);
-	zeroRows(P, 10, 15);
+	zeroCols(10, 15);
+	zeroRows(10, 15);
 
 	// Set the corresponding variances to the values use for initial alignment
 	float dt = FILTER_UPDATE_PERIOD_S;
@@ -1236,58 +1238,48 @@ void Ekf::fuse(float *K, float innovation)
 }
 
 // zero specified range of rows in the state covariance matrix
-void Ekf::zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroRows(int first, int last)
 {
-	uint8_t row;
-
-	for (row = first; row <= last; row++) {
-		memset(&cov_mat[row][0], 0, sizeof(cov_mat[0][0]) * 24);
-	}
+	memset(&P[first][0], 0, sizeof(P[0][0]) * _k_num_states * (last - first + 1));
 }
 
 // zero specified range of columns in the state covariance matrix
-void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroCols(int first, int last)
 {
-	uint8_t row;
-
-	for (row = 0; row <= 23; row++) {
-		memset(&cov_mat[row][first], 0, sizeof(cov_mat[0][0]) * (1 + last - first));
+	for (int row = 0; row < _k_num_states; row++) {
+		memset(&P[row][first], 0, sizeof(P[0][0]) * (1 + last - first));
 	}
 }
 
-void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+void Ekf::zeroOffDiag(uint8_t first, uint8_t last)
 {
 	// save diagonal elements
-	uint8_t row;
 	float variances[_k_num_states];
 
-	for (row = first; row <= last; row++) {
-		variances[row] = cov_mat[row][row];
+	for (uint8_t row = first; row <= last; row++) {
+		variances[row] = P[row][row];
 	}
 
 	// zero rows and columns
-	zeroRows(cov_mat, first, last);
-	zeroCols(cov_mat, first, last);
+	zeroRows(first, last);
+	zeroCols(first, last);
 
 	// restore diagonals
-	for (row = first; row <= last; row++) {
-		cov_mat[row][row] = variances[row];
+	for (uint8_t row = first; row <= last; row++) {
+		P[row][row] = variances[row];
 	}
 }
 
-void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
+void Ekf::setDiag(uint8_t first, uint8_t last, float variance)
 {
 	// zero rows and columns
-	zeroRows(cov_mat, first, last);
-	zeroCols(cov_mat, first, last);
+	zeroRows(first, last);
+	zeroCols(first, last);
 
 	// set diagonals
-	uint8_t row;
-
-	for (row = first; row <= last; row++) {
-		cov_mat[row][row] = variance;
+	for (uint8_t row = first; row <= last; row++) {
+		P[row][row] = variance;
 	}
-
 }
 
 bool Ekf::global_position_is_valid()
@@ -1474,8 +1466,8 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 		float t44 = t17-t36;
 
 		// zero all the quaternion covariances
-		zeroRows(P, 0, 3);
-		zeroCols(P, 0, 3);
+		zeroRows(0, 3);
+		zeroCols(0, 3);
 
 		// Update the quaternion internal covariances using auto-code generated using matlab symbolic toolbox
 		P[0][0] = rot_vec_var(0)*t2*t9*t10*0.25f+rot_vec_var(1)*t4*t9*t10*0.25f+rot_vec_var(2)*t5*t9*t10*0.25f;
