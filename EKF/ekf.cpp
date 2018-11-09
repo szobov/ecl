@@ -254,7 +254,7 @@ bool Ekf::initialiseFilter()
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 		// calculate the averaged magnetometer reading
-		Vector3f mag_init = _mag_filt_state;
+		const Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
 		// Get the magnetic declination
@@ -668,4 +668,14 @@ Quatf Ekf::calculate_quaternion() const
 	// increment the quaternions using the corrected delta angle vector
 	// the quaternions must always be normalised after modification
 	return Quatf{_output_new.quat_nominal * AxisAnglef{delta_angle}}.unit();
+}
+
+bool Ekf::save_mag_declination()
+{
+	if (_NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL)) {
+		_params.mag_declination_deg = math::degrees(_mag_declination);
+		return true;
+	}
+
+	return false;
 }

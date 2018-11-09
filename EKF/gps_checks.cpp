@@ -77,10 +77,13 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 		_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
 		_NED_origin_initialised = true;
 		_last_gps_origin_time_us = _time_last_imu;
+
 		// set the magnetic declination returned by the geo library using the current GPS position
 		_mag_declination_gps = math::radians(get_mag_declination(lat, lon));
+
 		// request a reset of the yaw using the new declination
 		_mag_yaw_reset_req = true;
+
 		// save the horizontal and vertical position uncertainty of the origin
 		_gps_origin_eph = gps->eph;
 		_gps_origin_epv = gps->epv;

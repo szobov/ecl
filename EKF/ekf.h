@@ -246,6 +246,11 @@ public:
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
 
+	// Save the value of magnetic declination in degrees back to the parameter for use at the next startup
+	// Returns true when the declination is saved
+	// At the next startup, set param.mag_declination_deg to the value saved
+	bool save_mag_declination();
+
 private:
 
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
@@ -526,7 +531,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
-	bool resetMagHeading(Vector3f &mag_init);
+	bool resetMagHeading(const Vector3f &mag_init);
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.

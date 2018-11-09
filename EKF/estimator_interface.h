@@ -332,14 +332,10 @@ public:
 		*time_us = _time_last_imu;
 	}
 
-	// Get the value of magnetic declination in degrees to be saved for use at the next startup
-	// Returns true when the declination can be saved
+	// Save the value of magnetic declination in degrees back to the parameter for use at the next startup
+	// Returns true when the declination is saved
 	// At the next startup, set param.mag_declination_deg to the value saved
-	bool get_mag_decl_deg(float *val)
-	{
-		*val = _mag_declination_to_save_deg;
-		return _NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL);
-	}
+	bool save_mag_declination() { return false; }
 
 	virtual void get_accel_bias(float bias[3]) = 0;
 	virtual void get_gyro_bias(float bias[3]) = 0;
@@ -551,7 +547,6 @@ protected:
 	void unallocate_buffers();
 
 	float _mag_declination_gps{0.0f};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _mag_declination_to_save_deg{0.0f}; // magnetic declination to save to EKF2_MAG_DECL (deg)
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};
