@@ -112,20 +112,6 @@ void Ekf::initialiseCovariance()
 
 }
 
-void Ekf::get_pos_var(Vector3f &pos_var)
-{
-	pos_var(0) = P[7][7];
-	pos_var(1) = P[8][8];
-	pos_var(2) = P[9][9];
-}
-
-void Ekf::get_vel_var(Vector3f &vel_var)
-{
-	vel_var(0) = P[4][4];
-	vel_var(1) = P[5][5];
-	vel_var(2) = P[6][6];
-}
-
 void Ekf::predictCovariance()
 {
 	// assign intermediate state variables

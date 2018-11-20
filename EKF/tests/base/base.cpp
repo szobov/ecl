@@ -54,7 +54,17 @@ int main(int argc, char *argv[])
 	// simulate 400 Hz imu rate, filter should downsample to 100Hz
 	// feed in 2 seconds of data
 	for (int i = 0; i < 800; i++) {
-		base->setIMUData(time_usec, 2500, 2500, delta_ang, delta_vel);
+		imuSample imu_sample_new;
+		imu_sample_new.delta_ang = Vector3f(delta_ang);
+		imu_sample_new.delta_vel = Vector3f(delta_vel);
+
+		// convert time from us to secs
+		imu_sample_new.delta_ang_dt = 2500 / 1e6f;
+		imu_sample_new.delta_vel_dt = 2500 / 1e6f;
+		imu_sample_new.time_us = time_usec;
+
+		base->setIMUData(imu_sample_new);
+
 		time_usec += 2500;
 	}
 
@@ -65,14 +75,29 @@ int main(int argc, char *argv[])
 	// simulate 400 Hz imu rate, filter should downsample to 100Hz
 	// feed in 2 seconds of data
 	for (int i = 0; i < 800; i++) {
-		base->setIMUData(time_usec, 2500, 2500, delta_ang, delta_vel);
-		//base->print_imu_avg_time();
+		imuSample imu_sample_new;
+		imu_sample_new.delta_ang = Vector3f(delta_ang);
+		imu_sample_new.delta_vel = Vector3f(delta_vel);
+
+		// convert time from us to secs
+		imu_sample_new.delta_ang_dt = 2500 / 1e6f;
+		imu_sample_new.delta_vel_dt = 2500 / 1e6f;
+		imu_sample_new.time_us = time_usec;
+
 		time_usec += 2500;
 	}
 
 	// Test3: feed in slow imu data, filter should now take every sample
 	for (int i = 0; i < 800; i++) {
-		base->setIMUData(time_usec, 2500, 2500, delta_ang, delta_vel);
+		imuSample imu_sample_new;
+		imu_sample_new.delta_ang = Vector3f(delta_ang);
+		imu_sample_new.delta_vel = Vector3f(delta_vel);
+
+		// convert time from us to secs
+		imu_sample_new.delta_ang_dt = 2500 / 1e6f;
+		imu_sample_new.delta_vel_dt = 2500 / 1e6f;
+		imu_sample_new.time_us = time_usec;
+
 		time_usec += 30000;
 	}
 
@@ -128,7 +153,18 @@ int main(int argc, char *argv[])
 		}
 
 		gps.time_usec = timer;
-		base->setIMUData(timer, timer - timer_last, timer - timer_last, delta_ang, delta_vel);
+
+		imuSample imu_sample_new;
+		imu_sample_new.delta_ang = Vector3f(delta_ang);
+		imu_sample_new.delta_vel = Vector3f(delta_vel);
+
+		// convert time from us to secs
+		imu_sample_new.delta_ang_dt = (timer - timer_last) / 1e6f;
+		imu_sample_new.delta_vel_dt = (timer - timer_last) / 1e6f;
+		imu_sample_new.time_us = timer;
+
+		base->setIMUData(imu_sample_new);
+
 		base->setMagData(timer, mag);
 		base->setBaroData(timer, baro);
 		base->setGpsData(timer, &gps);

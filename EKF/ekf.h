@@ -44,7 +44,7 @@
 
 #include "estimator_interface.h"
 
-class Ekf : public EstimatorInterface
+class Ekf final : public EstimatorInterface
 {
 public:
 
@@ -68,7 +68,7 @@ public:
 	void get_mag_innov(float mag_innov[3]);
 
 	// gets the innovations of the heading measurement
-	void get_heading_innov(float *heading_innov);
+	float get_heading_innov() const { return _heading_innov; }
 
 	// gets the innovation variances of velocity and position measurements
 	// 0-2 vel, 3-5 pos
@@ -78,19 +78,19 @@ public:
 	void get_mag_innov_var(float mag_innov_var[3]);
 
 	// gets the innovations of airspeed measurement
-	void get_airspeed_innov(float *airspeed_innov);
+	float get_airspeed_innov() const { return _airspeed_innov; }
 
 	// gets the innovation variance of the airspeed measurement
-	void get_airspeed_innov_var(float *airspeed_innov_var);
+	float get_airspeed_innov_var() const { return _airspeed_innov_var; }
 
 	// gets the innovations of synthetic sideslip measurement
-	void get_beta_innov(float *beta_innov);
+	float get_beta_innov() const { return _beta_innov; }
 
 	// gets the innovation variance of the synthetic sideslip measurement
-	void get_beta_innov_var(float *beta_innov_var);
+	float get_beta_innov_var() const { return _beta_innov_var; }
 
 	// gets the innovation variance of the heading measurement
-	void get_heading_innov_var(float *heading_innov_var);
+	float get_heading_innov_var() const { return _heading_innov_var; }
 
 	// gets the innovation variance of the flow measurement
 	void get_flow_innov_var(float flow_innov_var[2]);
@@ -105,22 +105,22 @@ public:
 	void get_drag_innov(float drag_innov[2]);
 
 	// gets the innovation variance of the HAGL measurement
-	void get_hagl_innov_var(float *hagl_innov_var);
+	float get_hagl_innov_var() const { return _hagl_innov_var; }
 
 	// gets the innovation of the HAGL measurement
-	void get_hagl_innov(float *hagl_innov);
+	float get_hagl_innov() const { return _hagl_innov; }
 
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state);
 
 	// get the wind velocity in m/s
-	void get_wind_velocity(float *wind);
+	const Vector2f& get_wind_velocity() const { return _state.wind_vel; }
 
 	// get the wind velocity var
-	void get_wind_velocity_var(float *wind_var);
+	Vector2f get_wind_velocity_var() const { return Vector2f{P[22][22], P[23][23]}; }
 
 	// get the true airspeed in m/s
-	void get_true_airspeed(float *tas);
+	float get_true_airspeed() const;
 
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
@@ -153,9 +153,9 @@ public:
 	*/
 	bool reset_imu_bias();
 
-	void get_vel_var(Vector3f &vel_var);
+	Vector3f get_vel_var() const { return Vector3f{P[4][4], P[5][5], P[6][6]}; }
 
-	void get_pos_var(Vector3f &pos_var);
+	Vector3f get_pos_var() const { return Vector3f{P[7][7], P[8][8], P[9][9]}; }
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/sec), (m)
@@ -180,34 +180,34 @@ public:
 	bool get_gps_drift_metrics(float drift[3], bool *blocked);
 
 	// return true if the global position estimate is valid
-	bool global_position_is_valid();
+	bool global_position_is_valid() const;
 
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
 	void update_deadreckoning_status();
 
 	// return true if the terrain estimate is valid
-	bool get_terrain_valid();
+	bool get_terrain_valid() const { return _hagl_valid; }
 
 	// update terrain validity status
 	void update_terrain_valid();
 
 	// get the estimated terrain vertical position relative to the NED origin
-	void get_terrain_vert_pos(float *ret);
+	float get_terrain_vert_pos() const { return _terrain_vpos; }
 
 	// get the accerometer bias in m/s/s
-	void get_accel_bias(float bias[3]);
+	Vector3f get_accel_bias() const { return _state.accel_bias / _dt_ekf_avg; }
 
 	// get the gyroscope bias in rad/s
-	void get_gyro_bias(float bias[3]);
+	Vector3f get_gyro_bias() const { return _state.gyro_bias / _dt_ekf_avg; }
 
 	// get GPS check status
-	void get_gps_check_status(uint16_t *val);
+	uint16_t get_gps_check_status() const { return _gps_check_fail_status.value; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
-	void get_posD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.posD_change; *counter = _state_reset_status.posD_counter;}
+	void get_posD_reset(float *delta, uint8_t *counter) { *delta = _state_reset_status.posD_change; *counter = _state_reset_status.posD_counter; }
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
-	void get_velD_reset(float *delta, uint8_t *counter) {*delta = _state_reset_status.velD_change; *counter = _state_reset_status.velD_counter;}
+	void get_velD_reset(float *delta, uint8_t *counter) { *delta = _state_reset_status.velD_change; *counter = _state_reset_status.velD_counter; }
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
 	void get_posNE_reset(float delta[2], uint8_t *counter)
@@ -567,7 +567,7 @@ private:
 	void fuse(float *K, float innovation);
 
 	// calculate the earth rotation vector from a given latitude
-	void calcEarthRateNED(Vector3f &omega, float lat_rad) const;
+	Vector3f calcEarthRateNED(float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
 	bool gps_is_good(struct gps_message *gps);

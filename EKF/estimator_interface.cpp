@@ -143,21 +143,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	}
 }
 
-void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt,
-				    float (&delta_ang)[3], float (&delta_vel)[3])
-{
-	imuSample imu_sample_new;
-	imu_sample_new.delta_ang = Vector3f(delta_ang);
-	imu_sample_new.delta_vel = Vector3f(delta_vel);
-
-	// convert time from us to secs
-	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
-	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
-	imu_sample_new.time_us = time_usec;
-
-	setIMUData(imu_sample_new);
-}
-
 void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 {
 	if (!_initialised || _mag_buffer_fail) {
@@ -555,13 +540,6 @@ void EstimatorInterface::unallocate_buffers()
 	_output_vert_buffer.unallocate();
 	_drag_buffer.unallocate();
 	_auxvel_buffer.unallocate();
-
-}
-
-bool EstimatorInterface::local_position_is_valid()
-{
-	// return true if we are not doing unconstrained free inertial navigation
-	return !_deadreckon_time_exceeded;
 }
 
 void EstimatorInterface::print_status()

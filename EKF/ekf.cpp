@@ -301,7 +301,7 @@ void Ekf::predictState()
 {
 	if (!_earth_rate_initialised) {
 		if (_NED_origin_initialised) {
-			calcEarthRateNED(_earth_rate_NED, (float)_pos_ref.lat_rad);
+			_earth_rate_NED = calcEarthRateNED(_pos_ref.lat_rad);
 			_earth_rate_initialised = true;
 		}
 	}

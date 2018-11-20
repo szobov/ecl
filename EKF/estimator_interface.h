@@ -72,13 +72,13 @@ public:
 	virtual void get_mag_innov(float mag_innov[3]) = 0;
 
 	// gets the innovation of airspeed measurement
-	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
+	virtual float get_airspeed_innov() const = 0;
 
 	// gets the innovation of the synthetic sideslip measurement
-	virtual void get_beta_innov(float *beta_innov) = 0;
+	virtual float get_beta_innov() const = 0;
 
 	// gets the innovations of the heading measurement
-	virtual void get_heading_innov(float *heading_innov) = 0;
+	virtual float get_heading_innov() const = 0;
 
 	// gets the innovation variances of velocity and position measurements
 	// 0-2 vel, 3-5 pos
@@ -88,29 +88,29 @@ public:
 	virtual void get_mag_innov_var(float mag_innov_var[3]) = 0;
 
 	// gets the innovation variance of the airspeed measurement
-	virtual void get_airspeed_innov_var(float *get_airspeed_innov_var) = 0;
+	virtual float get_airspeed_innov_var() const = 0;
 
 	// gets the innovation variance of the synthetic sideslip measurement
-	virtual void get_beta_innov_var(float *get_beta_innov_var) = 0;
+	virtual float get_beta_innov_var() const = 0;
 
 	// gets the innovation variance of the heading measurement
-	virtual void get_heading_innov_var(float *heading_innov_var) = 0;
+	virtual float get_heading_innov_var() const = 0;
 
 	virtual void get_state_delayed(float *state) = 0;
 
-	virtual void get_wind_velocity(float *wind) = 0;
+	virtual const Vector2f& get_wind_velocity() const = 0;
 
-	virtual void get_wind_velocity_var(float *wind_var) = 0;
+	virtual Vector2f get_wind_velocity_var() const = 0;
 
-	virtual void get_true_airspeed(float *tas) = 0;
+	virtual float get_true_airspeed() const = 0;
 
 	virtual void get_covariances(float *covariances) = 0;
 
 	// gets the variances for the NED velocity states
-	virtual void get_vel_var(Vector3f &vel_var) = 0;
+	virtual Vector3f get_vel_var() const = 0;
 
 	// gets the variances for the NED position states
-	virtual void get_pos_var(Vector3f &pos_var) = 0;
+	virtual Vector3f get_pos_var() const = 0;
 
 	// gets the innovation variance of the flow measurement
 	virtual void get_flow_innov_var(float flow_innov_var[2]) = 0;
@@ -125,10 +125,10 @@ public:
 	virtual void get_drag_innov(float drag_innov[2]) = 0;
 
 	// gets the innovation variance of the HAGL measurement
-	virtual void get_hagl_innov_var(float *flow_innov_var) = 0;
+	virtual float get_hagl_innov_var() const = 0;
 
 	// gets the innovation of the HAGL measurement
-	virtual void get_hagl_innov(float *flow_innov_var) = 0;
+	virtual float get_hagl_innov() const = 0;
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/s), (m)
@@ -177,9 +177,6 @@ public:
 	// set delta angle imu data
 	void setIMUData(const imuSample &imu_sample);
 
-	// legacy interface for compatibility (2018-09-14)
-	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3], float (&delta_vel)[3]);
-
 	// set magnetometer data
 	void setMagData(uint64_t time_usec, float (&data)[3]);
 
@@ -210,7 +207,7 @@ public:
 	parameters *getParamHandle() {return &_params;}
 
 	// set vehicle landed status data
-	void set_in_air_status(bool in_air) {_control_status.flags.in_air = in_air;}
+	void set_in_air_status(bool in_air) { _control_status.flags.in_air = in_air; }
 
 	/*
 	Reset all IMU bias states and covariances to initial alignment values.
@@ -220,19 +217,19 @@ public:
 	virtual bool reset_imu_bias() = 0;
 
 	// return true if the attitude is usable
-	bool attitude_valid() { return ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
+	bool attitude_valid() const { return ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
 
 	// get vehicle landed status data
-	bool get_in_air_status() {return _control_status.flags.in_air;}
+	bool get_in_air_status() const { return _control_status.flags.in_air; }
 
 	// get wind estimation status
-	bool get_wind_status() { return _control_status.flags.wind; }
+	bool get_wind_status() const { return _control_status.flags.wind; }
 
 	// set vehicle is fixed wing status
-	void set_is_fixed_wing(bool is_fixed_wing) {_control_status.flags.fixed_wing = is_fixed_wing;}
+	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
 	// set flag if synthetic sideslip measurement should be fused
-	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = (fuse_beta && _control_status.flags.in_air);}
+	void set_fuse_beta_flag(bool fuse_beta) { _control_status.flags.fuse_beta = (fuse_beta && _control_status.flags.in_air); }
 
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
@@ -247,7 +244,7 @@ public:
 	void set_update_mag_states_only_flag(bool update_mag_states_only) {_control_status.flags.update_mag_states_only = update_mag_states_only;}
 
 	// set air density used by the multi-rotor specific drag force fusion
-	void set_air_density(float air_density) {_air_density = air_density;}
+	void set_air_density(float air_density) { _air_density = air_density; }
 
 	// set sensor limitations reported by the rangefinder
 	void set_rangefinder_limits(float min_distance, float max_distance)
@@ -265,26 +262,19 @@ public:
 	}
 
 	// return true if the global position estimate is valid
-	virtual bool global_position_is_valid() = 0;
+	virtual bool global_position_is_valid() const = 0;
 
 	// return true if the EKF is dead reckoning the position using inertial data only
-	bool inertial_dead_reckoning() {return _is_dead_reckoning;}
+	bool inertial_dead_reckoning() const { return _is_dead_reckoning; }
 
 	// return true if the terrain estimate is valid
-	virtual bool get_terrain_valid() = 0;
+	virtual bool get_terrain_valid() const = 0;
 
 	// get the estimated terrain vertical position relative to the NED origin
-	virtual void get_terrain_vert_pos(float *ret) = 0;
+	virtual float get_terrain_vert_pos() const = 0;
 
-	// return true if the local position estimate is valid
-	bool local_position_is_valid();
-
-	void copy_quaternion(float *quat)
-	{
-		for (unsigned i = 0; i < 4; i++) {
-			quat[i] = _output_new.quat_nominal(i);
-		}
-	}
+	// return true if the local position estimate is valid (which is true if we are not doing unconstrained free inertial navigation)
+	bool local_position_is_valid() const { return !_deadreckon_time_exceeded; }
 
 	const matrix::Quatf &get_quaternion() const { return _output_new.quat_nominal; }
 
@@ -292,44 +282,22 @@ public:
 	virtual void get_ekf2ev_quaternion(float *quat) = 0;
 
 	// get the velocity of the body frame origin in local NED earth frame
-	void get_velocity(float *vel)
-	{
-		Vector3f vel_earth = _output_new.vel - _vel_imu_rel_body_ned;
-
-		for (unsigned i = 0; i < 3; i++) {
-			vel[i] = vel_earth(i);
-		}
-	}
+	Vector3f get_velocity() const { return _output_new.vel - _vel_imu_rel_body_ned; }
 
 	// get the NED velocity derivative in earth frame
-	void get_vel_deriv_ned(float *vel_deriv)
-	{
-		for (unsigned i = 0; i < 3; i++) {
-			vel_deriv[i] = _vel_deriv_ned(i);
-		}
-	}
+	const Vector3f &get_vel_deriv_ned() const { return _vel_deriv_ned; }
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
-	void get_pos_d_deriv(float *pos_d_deriv)
-	{
-		float var = _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
-		*pos_d_deriv = var;
-	}
+	float get_pos_d_deriv() const { return _output_vert_new.vel_d - _vel_imu_rel_body_ned(2); }
 
 	// get the position of the body frame origin in local NED earth frame
-	void get_position(float *pos)
+	Vector3f get_position() const
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
-		Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
+		const Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
 
 		// subtract from the EKF position (which is at the IMU) to get position at the body origin
-		for (unsigned i = 0; i < 3; i++) {
-			pos[i] = _output_new.pos(i) - pos_offset_earth(i);
-		}
-	}
-	void copy_timestamp(uint64_t *time_us)
-	{
-		*time_us = _time_last_imu;
+		return _output_new.pos - pos_offset_earth;
 	}
 
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
@@ -341,23 +309,18 @@ public:
 		return _NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL);
 	}
 
-	virtual void get_accel_bias(float bias[3]) = 0;
-	virtual void get_gyro_bias(float bias[3]) = 0;
+	virtual Vector3f get_accel_bias() const = 0;
+
+	virtual Vector3f get_gyro_bias() const = 0;
 
 	// get EKF mode status
-	void get_control_mode(uint32_t *val)
-	{
-		*val = _control_status.value;
-	}
+	uint32_t get_control_mode() const { return _control_status.value; }
 
 	// get EKF internal fault status
-	void get_filter_fault_status(uint16_t *val)
-	{
-		*val = _fault_status.value;
-	}
+	uint16_t get_filter_fault_status() const { return _fault_status.value; }
 
 	// get GPS check status
-	virtual void get_gps_check_status(uint16_t *val) = 0;
+	virtual uint16_t get_gps_check_status() const = 0;
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
 	virtual void get_posD_reset(float *delta, uint8_t *counter) = 0;
@@ -388,16 +351,10 @@ public:
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
 	// Getter for the imu sample on the delayed time horizon
-	imuSample get_imu_sample_delayed()
-	{
-		return _imu_sample_delayed;
-	}
+	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
 
 	// Getter for the baro sample on the delayed time horizon
-	baroSample get_baro_sample_delayed()
-	{
-		return _baro_sample_delayed;
-	}
+	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 
 	void print_status();
 

@@ -162,12 +162,6 @@ void Ekf::fuseHagl()
 	}
 }
 
-// return true if the terrain height estimate is valid
-bool Ekf::get_terrain_valid()
-{
-	return _hagl_valid;
-}
-
 // determine terrain validity
 void Ekf::update_terrain_valid()
 {
@@ -178,23 +172,6 @@ void Ekf::update_terrain_valid()
 	} else {
 		_hagl_valid = false;
 	}
-}
-
-// get the estimated vertical position of the terrain relative to the NED origin
-void Ekf::get_terrain_vert_pos(float *ret)
-{
-	memcpy(ret, &_terrain_vpos, sizeof(float));
-}
-
-void Ekf::get_hagl_innov(float *hagl_innov)
-{
-	memcpy(hagl_innov, &_hagl_innov, sizeof(_hagl_innov));
-}
-
-
-void Ekf::get_hagl_innov_var(float *hagl_innov_var)
-{
-	memcpy(hagl_innov_var, &_hagl_innov_var, sizeof(_hagl_innov_var));
 }
 
 // check that the range finder data is continuous

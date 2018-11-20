@@ -835,11 +835,9 @@ void Ekf::constrainStates()
 }
 
 // calculate the earth rotation vector
-void Ekf::calcEarthRateNED(Vector3f &omega, float lat_rad) const
+Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 {
-	omega(0) = CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad);
-	omega(1) = 0.0f;
-	omega(2) = -CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad);
+	return Vector3f{CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad), 0.0f, -CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad)};
 }
 
 // gets the innovations of velocity and position measurements
@@ -861,24 +859,6 @@ void Ekf::get_mag_innov(float mag_innov[3])
 	memcpy(mag_innov, _mag_innov, 3 * sizeof(float));
 }
 
-// gets the innovations of the airspeed measnurement
-void Ekf::get_airspeed_innov(float *airspeed_innov)
-{
-	memcpy(airspeed_innov, &_airspeed_innov, sizeof(float));
-}
-
-// gets the innovations of the synthetic sideslip measurements
-void Ekf::get_beta_innov(float *beta_innov)
-{
-	memcpy(beta_innov, &_beta_innov, sizeof(float));
-}
-
-// gets the innovations of the heading measurement
-void Ekf::get_heading_innov(float *heading_innov)
-{
-	memcpy(heading_innov, &_heading_innov, sizeof(float));
-}
-
 // gets the innovation variances of velocity and position measurements
 // 0-2 vel, 3-5 pos
 void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6])
@@ -890,30 +870,6 @@ void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6])
 void Ekf::get_mag_innov_var(float mag_innov_var[3])
 {
 	memcpy(mag_innov_var, _mag_innov_var, sizeof(float) * 3);
-}
-
-// gest the innovation variance of the airspeed measurement
-void Ekf::get_airspeed_innov_var(float *airspeed_innov_var)
-{
-	memcpy(airspeed_innov_var, &_airspeed_innov_var, sizeof(float));
-}
-
-// gets the innovation variance of the synthetic sideslip measurement
-void Ekf::get_beta_innov_var(float *beta_innov_var)
-{
-	memcpy(beta_innov_var, &_beta_innov_var, sizeof(float));
-}
-
-// gets the innovation variance of the heading measurement
-void Ekf::get_heading_innov_var(float *heading_innov_var)
-{
-	memcpy(heading_innov_var, &_heading_innov_var, sizeof(float));
-}
-
-// get GPS check status
-void Ekf::get_gps_check_status(uint16_t *val)
-{
-	*val = _gps_check_fail_status.value;
 }
 
 // get the state vector at the delayed time horizon
@@ -950,26 +906,6 @@ void Ekf::get_state_delayed(float *state)
 	for (int i = 0; i < 2; i++) {
 		state[i + 22] = _state.wind_vel(i);
 	}
-}
-
-// get the accelerometer bias
-void Ekf::get_accel_bias(float bias[3])
-{
-	float temp[3];
-	temp[0] = _state.accel_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.accel_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.accel_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
-}
-
-// get the gyroscope bias in rad/s
-void Ekf::get_gyro_bias(float bias[3])
-{
-	float temp[3];
-	temp[0] = _state.gyro_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.gyro_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.gyro_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
 }
 
 // get the diagonal elements of the covariance matrix
@@ -1311,7 +1247,7 @@ void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first,
 
 }
 
-bool Ekf::global_position_is_valid()
+bool Ekf::global_position_is_valid() const
 {
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
 	// and have not started using synthetic position observations to constrain drift
