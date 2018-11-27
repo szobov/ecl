@@ -414,23 +414,12 @@ void Ekf::fuseOptFlow()
 	}
 
 	// record the innovation test pass/fail
-	bool flow_fail = false;
+	_innov_check_fail_status.reject_optflow_X = (optflow_test_ratio[0] > 1.0f);
+	_innov_check_fail_status.reject_optflow_Y = (optflow_test_ratio[1] > 1.0f);
 
-	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
-		if (optflow_test_ratio[obs_index] > 1.0f) {
-			flow_fail = true;
-			_innov_check_fail_status.value |= (1 << (obs_index + 10));
-
-		} else {
-			_innov_check_fail_status.value &= ~(1 << (obs_index + 10));
-
-		}
-	}
-
-	// if either axis fails we abort the fusion
-	if (flow_fail) {
+	if (_innov_check_fail_status.reject_optflow_X || _innov_check_fail_status.reject_optflow_Y) {
+		// if either axis fails we abort the fusion
 		return;
-
 	}
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
@@ -473,8 +462,8 @@ void Ekf::fuseOptFlow()
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
 		bool healthy = true;
-		_fault_status.flags.bad_optflow_X = false;
-		_fault_status.flags.bad_optflow_Y = false;
+		_fault_status.bad_optflow_X = false;
+		_fault_status.bad_optflow_Y = false;
 
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
@@ -487,10 +476,10 @@ void Ekf::fuseOptFlow()
 
 				// update individual measurement health status
 				if (obs_index == 0) {
-					_fault_status.flags.bad_optflow_X = true;
+					_fault_status.bad_optflow_X = true;
 
 				} else if (obs_index == 1) {
-					_fault_status.flags.bad_optflow_Y = true;
+					_fault_status.bad_optflow_Y = true;
 				}
 			}
 		}

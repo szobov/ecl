@@ -93,11 +93,11 @@ void Ekf::fuseMag()
 
 	if (_mag_innov_var[0] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.flags.bad_mag_x = false;
+		_fault_status.bad_mag_x = false;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_x = true;
+		_fault_status.bad_mag_x = true;
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
@@ -112,11 +112,11 @@ void Ekf::fuseMag()
 	// check for a badly conditioned covariance matrix
 	if (_mag_innov_var[1] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.flags.bad_mag_y = false;
+		_fault_status.bad_mag_y = false;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_y = true;
+		_fault_status.bad_mag_y = true;
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
@@ -131,11 +131,11 @@ void Ekf::fuseMag()
 	// check for a badly conditioned covariance matrix
 	if (_mag_innov_var[2] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
-		_fault_status.flags.bad_mag_z = false;
+		_fault_status.bad_mag_z = false;
 
 	} else if (_mag_innov_var[2] > 0.0f) {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_z = true;
+		_fault_status.bad_mag_z = true;
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
@@ -145,29 +145,25 @@ void Ekf::fuseMag()
 	}
 
 	// Perform an innovation consistency check and report the result
-	bool healthy = true;
-
 	for (uint8_t index = 0; index <= 2; index++) {
 		_mag_test_ratio[index] = sq(_mag_innov[index]) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var[index]);
+	}
 
-		if (_mag_test_ratio[index] > 1.0f) {
-			healthy = false;
-			_innov_check_fail_status.value |= (1 << (index + 3));
+	_innov_check_fail_status.reject_mag_x = (_mag_test_ratio[0] > 1.0f);
+	_innov_check_fail_status.reject_mag_y = (_mag_test_ratio[1] > 1.0f);
+	_innov_check_fail_status.reject_mag_z = (_mag_test_ratio[2] > 1.0f);
 
-		} else {
-			_innov_check_fail_status.value &= ~(1 << (index + 3));
-		}
+	if (_innov_check_fail_status.reject_mag_x || _innov_check_fail_status.reject_mag_y || _innov_check_fail_status.reject_mag_z) {
+		// if any axis fails, abort the mag fusion
+		return;
 	}
 
 	// we are no longer using heading fusion so set the reported test level to zero
 	_yaw_test_ratio = 0.0f;
 
-	// if any axis fails, abort the mag fusion
-	if (!healthy) {
-		return;
-	}
+	bool update_all_states = !_control_status.update_mag_states_only && !_flt_mag_align_converging;
 
-	bool update_all_states = !_control_status.flags.update_mag_states_only && !_flt_mag_align_converging;
+	bool healthy = true;
 
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
@@ -378,9 +374,9 @@ void Ekf::fuseMag()
 
 		// if the covariance correction will result in a negative variance, then
 		// the covariance marix is unhealthy and must be corrected
-		_fault_status.flags.bad_mag_x = false;
-		_fault_status.flags.bad_mag_y = false;
-		_fault_status.flags.bad_mag_z = false;
+		_fault_status.bad_mag_x = false;
+		_fault_status.bad_mag_y = false;
+		_fault_status.bad_mag_z = false;
 
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P[i][i] < KHP[i][i]) {
@@ -393,13 +389,13 @@ void Ekf::fuseMag()
 
 				// update individual measurement health status
 				if (index == 0) {
-					_fault_status.flags.bad_mag_x = true;
+					_fault_status.bad_mag_x = true;
 
 				} else if (index == 1) {
-					_fault_status.flags.bad_mag_y = true;
+					_fault_status.bad_mag_y = true;
 
 				} else if (index == 2) {
-					_fault_status.flags.bad_mag_z = true;
+					_fault_status.bad_mag_z = true;
 				}
 			}
 		}
@@ -474,13 +470,13 @@ void Ekf::fuseHeading()
 		predicted_hdg = euler321(2); // we will need the predicted heading to calculate the innovation
 
 		// calculate the observed yaw angle
-		if (_control_status.flags.mag_hdg) {
+		if (_control_status.mag_hdg) {
 			// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
 			euler321(2) = 0.0f;
 			Dcmf R_to_earth(euler321);
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			if (_control_status.flags.mag_3D) {
+			if (_control_status.mag_3D) {
 				// don't apply bias corrections if we are learning them
 				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 
@@ -491,7 +487,7 @@ void Ekf::fuseHeading()
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
-		} else if (_control_status.flags.ev_yaw) {
+		} else if (_control_status.ev_yaw) {
 			// calculate the yaw angle for a 321 sequence
 			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
 			float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
@@ -550,7 +546,7 @@ void Ekf::fuseHeading()
 		predicted_hdg = yaw; // we will need the predicted heading to calculate the innovation
 
 		// calculate the observed yaw angle
-		if (_control_status.flags.mag_hdg) {
+		if (_control_status.mag_hdg) {
 			// Set the first rotation (yaw) to zero and rotate the measurements into earth frame
 			yaw = 0.0f;
 
@@ -574,7 +570,7 @@ void Ekf::fuseHeading()
 			R_to_earth(2,2) = cp*cr;
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			if (_control_status.flags.mag_3D) {
+			if (_control_status.mag_3D) {
 				// don't apply bias corrections if we are learning them
 				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 			} else {
@@ -584,7 +580,7 @@ void Ekf::fuseHeading()
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
-		} else if (_control_status.flags.ev_yaw) {
+		} else if (_control_status.ev_yaw) {
 			// calculate the yaw angle for a 312 sequence
 			// Values from yaw_input_312.c file produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
 			float Tbn_0_1_neg = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)-_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
@@ -599,11 +595,11 @@ void Ekf::fuseHeading()
 	}
 
 	// Calculate the observation variance
-	if (_control_status.flags.mag_hdg) {
+	if (_control_status.mag_hdg) {
 		// using magnetic heading tuning parameter
 		R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 
-	} else if (_control_status.flags.ev_yaw) {
+	} else if (_control_status.ev_yaw) {
 		// using error estimate from external vision data
 		R_YAW = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
 
@@ -666,12 +662,12 @@ void Ekf::fuseHeading()
 	// check if the innovation variance calculation is badly conditioned
 	if (_heading_innov_var >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
-		_fault_status.flags.bad_hdg = false;
+		_fault_status.bad_hdg = false;
 		heading_innov_var_inv = 1.0f / _heading_innov_var;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_hdg = true;
+		_fault_status.bad_hdg = true;
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
@@ -693,7 +689,7 @@ void Ekf::fuseHeading()
 		Kfusion[row] *= heading_innov_var_inv;
 	}
 
-	if (_control_status.flags.wind) {
+	if (_control_status.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
 			Kfusion[row] = 0.0f;
 
@@ -713,12 +709,12 @@ void Ekf::fuseHeading()
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
-		_innov_check_fail_status.flags.reject_yaw = true;
+		_innov_check_fail_status.reject_yaw = true;
 
 		// if we are in air we don't want to fuse the measurement
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
-		if (_control_status.flags.in_air) {
+		if (_control_status.in_air) {
 			return;
 
 		} else {
@@ -728,7 +724,7 @@ void Ekf::fuseHeading()
 		}
 
 	} else {
-		_innov_check_fail_status.flags.reject_yaw = false;
+		_innov_check_fail_status.reject_yaw = false;
 	}
 
 	// apply covariance correction via P_new = (I -K*H)*P
@@ -756,7 +752,7 @@ void Ekf::fuseHeading()
 	// if the covariance correction will result in a negative variance, then
 	// the covariance marix is unhealthy and must be corrected
 	bool healthy = true;
-	_fault_status.flags.bad_hdg = false;
+	_fault_status.bad_hdg = false;
 
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P[i][i] < KHP[i][i]) {
@@ -768,7 +764,7 @@ void Ekf::fuseHeading()
 			healthy = false;
 
 			// update individual measurement health status
-			_fault_status.flags.bad_hdg = true;
+			_fault_status.bad_hdg = true;
 
 		}
 	}
@@ -891,7 +887,7 @@ void Ekf::fuseDeclination()
 	// if the covariance correction will result in a negative variance, then
 	// the covariance marix is unhealthy and must be corrected
 	bool healthy = true;
-	_fault_status.flags.bad_mag_decl = false;
+	_fault_status.bad_mag_decl = false;
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P[i][i] < KHP[i][i]) {
 			// zero rows and columns
@@ -902,7 +898,7 @@ void Ekf::fuseDeclination()
 			healthy = false;
 
 			// update individual measurement health status
-			_fault_status.flags.bad_mag_decl = true;
+			_fault_status.bad_mag_decl = true;
 
 		}
 	}

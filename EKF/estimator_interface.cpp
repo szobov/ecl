@@ -76,7 +76,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.norm();
 
 	// detect if the vehicle is not moving when on ground
-	if (!_control_status.flags.in_air) {
+	if (!_control_status.in_air) {
 		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
 				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
 				|| ((imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
@@ -383,7 +383,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		}
 
-		bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos;
+		bool relying_on_flow = !_control_status.gps && !_control_status.ev_pos;
 
 		// check quality metric
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
@@ -391,7 +391,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// Check data validity and write to buffers
 		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
 		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
-		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
+		if (use_flow_data_to_navigate || (!_control_status.in_air && relying_on_flow)) {
 			flowSample optflow_sample_new;
 			// calculate the system time-stamp for the trailing edge of the flow data integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000;
@@ -536,7 +536,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_time_last_range = 0;
 	_time_last_airspeed = 0;
 	_time_last_optflow = 0;
-	_fault_status.value = 0;
 	_time_last_ext_vision = 0;
 	return true;
 }

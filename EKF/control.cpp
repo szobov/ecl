@@ -46,33 +46,33 @@
 void Ekf::controlFusionModes()
 {
 	// Store the status to enable change detection
-	_control_status_prev.value = _control_status.value;
+	_control_status_prev = _control_status;
 
 	// Get the magnetic declination
 	calcMagDeclination();
 
 	// monitor the tilt alignment
-	if (!_control_status.flags.tilt_align) {
+	if (!_control_status.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
 		Vector3f angle_err_var_vec = calcRotVecVariances();
 
 		// Once the tilt variances have reduced to equivalent of 3deg uncertainty, re-set the yaw and magnetic field states
 		// and declare the tilt alignment complete
 		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
-			_control_status.flags.tilt_align = true;
-			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			_control_status.tilt_align = true;
+			_control_status.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 
 			// send alignment status message to the console
-			if (_control_status.flags.baro_hgt) {
+			if (_control_status.baro_hgt) {
 				ECL_INFO("EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
 
-			} else if (_control_status.flags.ev_hgt) {
+			} else if (_control_status.ev_hgt) {
 				ECL_INFO("EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
 
-			} else if (_control_status.flags.gps_hgt) {
+			} else if (_control_status.gps_hgt) {
 				ECL_INFO("EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
 
-			} else if (_control_status.flags.rng_hgt) {
+			} else if (_control_status.rng_hgt) {
 				ECL_INFO("EKF aligned, (range height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else {
@@ -162,19 +162,19 @@ void Ekf::controlExternalVisionFusion()
 
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
+		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.ev_yaw) {
 			// rotate EV measurements into the EKF Navigation frame
 			calcExtVisRotMat();
 		}
 
 		// external vision position aiding selection logic
-		if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align
-		    && _control_status.flags.yaw_align) {
+		if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.ev_pos && _control_status.tilt_align
+		    && _control_status.yaw_align) {
 
 			// check for a exernal vision measurement that has fallen behind the fusion time horizon
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// turn on use of external vision measurements for position
-				_control_status.flags.ev_pos = true;
+				_control_status.ev_pos = true;
 				ECL_INFO("EKF commencing external vision position fusion");
 
 				if ((_params.fusion_mode & MASK_ROTATE_EV) && !(_params.fusion_mode & MASK_USE_EVYAW))  {
@@ -184,7 +184,7 @@ void Ekf::controlExternalVisionFusion()
 
 				// reset the position if we are not already aiding using GPS, else use a relative position
 				// method for fusing the position data
-				if (_control_status.flags.gps) {
+				if (_control_status.gps) {
 					_fuse_hpos_as_odom = true;
 
 				} else {
@@ -196,7 +196,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		if (!_control_status.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.ev_yaw && _control_status.tilt_align) {
 			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
@@ -233,13 +233,13 @@ void Ekf::controlExternalVisionFusion()
 				_state_reset_status.quat_counter++;
 
 				// flag the yaw as aligned
-				_control_status.flags.yaw_align = true;
+				_control_status.yaw_align = true;
 
 				// turn on fusion of external vision yaw measurements and disable all magnetoemter fusion
-				_control_status.flags.ev_yaw = true;
-				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = false;
-				_control_status.flags.mag_dec = false;
+				_control_status.ev_yaw = true;
+				_control_status.mag_hdg = false;
+				_control_status.mag_3D = false;
+				_control_status.mag_dec = false;
 
 				ECL_INFO("EKF commencing external vision yaw fusion");
 			}
@@ -248,19 +248,19 @@ void Ekf::controlExternalVisionFusion()
 		// determine if we should start using the height observations
 		if (_params.vdist_sensor_type == VDIST_SENSOR_EV) {
 			// don't start using EV data unless data is arriving frequently
-			if (!_control_status.flags.ev_hgt && (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL)) {
+			if (!_control_status.ev_hgt && (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL)) {
 				setControlEVHeight();
 				resetHeight();
 			}
 		}
 
 		// determine if we should use the vertical position observation
-		if (_control_status.flags.ev_hgt) {
+		if (_control_status.ev_hgt) {
 			_fuse_height = true;
 		}
 
 		// determine if we should use the horizontal position observations
-		if (_control_status.flags.ev_pos) {
+		if (_control_status.ev_pos) {
 			_fuse_pos = true;
 
 			// correct position and height for offset relative to IMU
@@ -271,7 +271,7 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_delayed.posNED(2) -= pos_offset_earth(2);
 
 			// Use an incremental position fusion method for EV data if using GPS or if the observations are not in NED
-			if (_control_status.flags.gps || (_params.fusion_mode & MASK_ROTATE_EV)) {
+			if (_control_status.gps || (_params.fusion_mode & MASK_ROTATE_EV)) {
 				_fuse_hpos_as_odom = true;
 
 			} else {
@@ -336,17 +336,17 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// determine if we should use the yaw observation
-		if (_control_status.flags.ev_yaw) {
+		if (_control_status.ev_yaw) {
 			fuseHeading();
 
 		}
 
-	} else if (_control_status.flags.ev_pos
+	} else if (_control_status.ev_pos
 		   && (_time_last_imu >= _time_last_ext_vision)
 		   && (_time_last_imu - _time_last_ext_vision > (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received
-		_control_status.flags.ev_pos = false;
+		_control_status.ev_pos = false;
 		ECL_INFO("EKF External Vision Data Stopped");
 
 	}
@@ -355,7 +355,7 @@ void Ekf::controlExternalVisionFusion()
 void Ekf::controlOpticalFlowFusion()
 {
 	// Check if on ground motion is un-suitable for use of optical flow
-	if (!_control_status.flags.in_air) {
+	if (!_control_status.in_air) {
 		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
 		const float accel_norm = _accel_vec_filt.norm();
 
@@ -385,29 +385,29 @@ void Ekf::controlOpticalFlowFusion()
 		// Inhibit flow use if motion is un-suitable or we have good quality GPS
 		// Apply hysteresis to prevent rapid mode switching
 		float gps_err_norm_lim;
-		if (_control_status.flags.opt_flow) {
+		if (_control_status.opt_flow) {
 			gps_err_norm_lim = 0.7f;
 		} else {
 			gps_err_norm_lim = 1.0f;
 		}
 
 		// Check if we are in-air and require optical flow to control position drift
-		bool flow_required = _control_status.flags.in_air &&
+		bool flow_required = _control_status.in_air &&
 				(_is_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-				  || (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) // is completely reliant on optical flow
-				  || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
+				  || (_control_status.opt_flow && !_control_status.gps && !_control_status.ev_pos) // is completely reliant on optical flow
+				  || (_control_status.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
 
-		if (!_inhibit_flow_use && _control_status.flags.opt_flow) {
+		if (!_inhibit_flow_use && _control_status.opt_flow) {
 			// inhibit use of optical flow if motion is unsuitable and we are not reliant on it for flight navigation
-			bool preflight_motion_not_ok = !_control_status.flags.in_air && ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5);
-			bool flight_motion_not_ok = _control_status.flags.in_air && !_range_aid_mode_enabled;
+			bool preflight_motion_not_ok = !_control_status.in_air && ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5);
+			bool flight_motion_not_ok = _control_status.in_air && !_range_aid_mode_enabled;
 			if ((preflight_motion_not_ok || flight_motion_not_ok) && !flow_required) {
 				_inhibit_flow_use = true;
 			}
-		} else if (_inhibit_flow_use && !_control_status.flags.opt_flow){
+		} else if (_inhibit_flow_use && !_control_status.opt_flow){
 			// allow use of optical flow if motion is suitable or we are reliant on it for flight navigation
-			bool preflight_motion_ok = !_control_status.flags.in_air && ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6);
-			bool flight_motion_ok = _control_status.flags.in_air && _range_aid_mode_enabled;
+			bool preflight_motion_ok = !_control_status.in_air && ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6);
+			bool flight_motion_ok = _control_status.in_air && _range_aid_mode_enabled;
 			if (preflight_motion_ok || flight_motion_ok || flow_required) {
 				_inhibit_flow_use = false;
 			}
@@ -415,37 +415,37 @@ void Ekf::controlOpticalFlowFusion()
 
 		// Handle cases where we are using optical flow but are no longer able to because data is old
 		// or its use has been inhibited.
-		if (_control_status.flags.opt_flow) {
+		if (_control_status.opt_flow) {
 		       if (_inhibit_flow_use) {
-			       _control_status.flags.opt_flow = false;
+			       _control_status.opt_flow = false;
 			       _time_last_of_fuse = 0;
 
 			} else if (_time_last_imu - _time_last_of_fuse > (uint64_t)_params.reset_timeout_max) {
-				_control_status.flags.opt_flow = false;
+				_control_status.opt_flow = false;
 
 			}
 		}
 
 		// optical flow fusion mode selection logic
 		if ((_params.fusion_mode & MASK_USE_OF) // optical flow has been selected by the user
-			&& !_control_status.flags.opt_flow // we are not yet using flow data
-			&& _control_status.flags.tilt_align // we know our tilt attitude
+			&& !_control_status.opt_flow // we are not yet using flow data
+			&& _control_status.tilt_align // we know our tilt attitude
 			&& !_inhibit_flow_use
 			&& get_terrain_valid()) // we have a valid distance to ground estimate
 		{
 			// If the heading is not aligned, reset the yaw and magnetic field states
-			if (!_control_status.flags.yaw_align) {
-				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			if (!_control_status.yaw_align) {
+				_control_status.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 			}
 
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
-			if (_control_status.flags.yaw_align) {
+			if (_control_status.yaw_align) {
 				// set the flag and reset the fusion timeout
-				_control_status.flags.opt_flow = true;
+				_control_status.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
 
 				// if we are not using GPS then the velocity and position states and covariances need to be set
-				if (!_control_status.flags.gps || !_control_status.flags.ev_pos) {
+				if (!_control_status.gps || !_control_status.ev_pos) {
 					resetVelocity();
 					resetPosition();
 
@@ -456,14 +456,14 @@ void Ekf::controlOpticalFlowFusion()
 			}
 
 		} else if (!(_params.fusion_mode & MASK_USE_OF)) {
-			_control_status.flags.opt_flow = false;
+			_control_status.opt_flow = false;
 
 		}
 
 		// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
-		if (_control_status.flags.opt_flow
-		    && !_control_status.flags.gps
-		    && !_control_status.flags.ev_pos) {
+		if (_control_status.opt_flow
+		    && !_control_status.gps
+		    && !_control_status.ev_pos) {
 
 			bool do_reset = _time_last_imu - _time_last_of_fuse > _params.reset_timeout_max;
 
@@ -478,7 +478,7 @@ void Ekf::controlOpticalFlowFusion()
 
 			bool flow_quality_good = (_flow_sample_delayed.quality >= _params.flow_qual_min);
 
-			if (!flow_quality_good && !_control_status.flags.in_air) {
+			if (!flow_quality_good && !_control_status.in_air) {
 				// when on the ground with poor flow quality, assume zero ground relative velocity and LOS rate
 				_flowRadXYcomp.zero();
 			} else {
@@ -496,7 +496,7 @@ void Ekf::controlOpticalFlowFusion()
 	if (_flow_data_ready && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 		// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 		// but use a relaxed time criteria to enable it to coast through bad range finder data
-		if (_control_status.flags.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
+		if (_control_status.opt_flow && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)10e6)) {
 			fuseOptFlow();
 			_last_known_posNE(0) = _state.pos(0);
 			_last_known_posNE(1) = _state.pos(1);
@@ -514,27 +514,27 @@ void Ekf::controlGpsFusion()
 		// GPS yaw aiding selection logic
 		if ((_params.fusion_mode & MASK_USE_GPSYAW)
 				&& ISFINITE(_gps_sample_delayed.yaw)
-				&& _control_status.flags.tilt_align
-				&& (!_control_status.flags.gps_yaw || !_control_status.flags.yaw_align)
+				&& _control_status.tilt_align
+				&& (!_control_status.gps_yaw || !_control_status.yaw_align)
 				&& (_time_last_imu - _time_last_gps < 2 * GPS_MAX_INTERVAL)) {
 
 			if (resetGpsAntYaw()) {
 				// flag the yaw as aligned
-				_control_status.flags.yaw_align = true;
+				_control_status.yaw_align = true;
 
 				// turn on fusion of external vision yaw measurements and disable all other yaw fusion
-				_control_status.flags.gps_yaw = true;
-				_control_status.flags.ev_yaw = false;
-				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = false;
-				_control_status.flags.mag_dec = false;
+				_control_status.gps_yaw = true;
+				_control_status.ev_yaw = false;
+				_control_status.mag_hdg = false;
+				_control_status.mag_3D = false;
+				_control_status.mag_dec = false;
 
 				ECL_INFO("EKF commencing GPS yaw fusion");
 			}
 		}
 
 		// fuse the yaw observation
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.gps_yaw) {
 			fuseGpsAntYaw();
 		}
 
@@ -542,14 +542,14 @@ void Ekf::controlGpsFusion()
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
 		bool gps_checks_passing = (_time_last_imu - _last_gps_fail_us > (uint64_t)5e6);
 		bool gps_checks_failing = (_time_last_imu - _last_gps_pass_us > (uint64_t)5e6);
-		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
-			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
+		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.gps) {
+			if (_control_status.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
-				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw || _mag_inhibit_yaw_reset_req) {
-					_control_status.flags.ev_yaw = false;
-					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+				if (!_control_status.yaw_align || _control_status.ev_yaw || _mag_inhibit_yaw_reset_req) {
+					_control_status.ev_yaw = false;
+					_control_status.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 					// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
 					// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
 					if (_mag_inhibit_yaw_reset_req) {
@@ -560,23 +560,23 @@ void Ekf::controlGpsFusion()
 				}
 
 				// If the heading is valid start using gps aiding
-				if (_control_status.flags.yaw_align) {
+				if (_control_status.yaw_align) {
 					// if we are not already aiding with optical flow, then we need to reset the position and velocity
 					// otherwise we only need to reset the position
-					_control_status.flags.gps = true;
+					_control_status.gps = true;
 
-					if (!_control_status.flags.opt_flow) {
+					if (!_control_status.opt_flow) {
 						if (!resetPosition() || !resetVelocity()) {
-							_control_status.flags.gps = false;
+							_control_status.gps = false;
 
 						}
 
 					} else if (!resetPosition()) {
-						_control_status.flags.gps = false;
+						_control_status.gps = false;
 
 					}
 
-					if (_control_status.flags.gps) {
+					if (_control_status.gps) {
 						ECL_INFO("EKF commencing GPS fusion");
 						_time_last_gps = _time_last_imu;
 					}
@@ -584,18 +584,18 @@ void Ekf::controlGpsFusion()
 			}
 
 		}  else if (!(_params.fusion_mode & MASK_USE_GPS)) {
-			_control_status.flags.gps = false;
+			_control_status.gps = false;
 
 		}
 
 		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
-		if (_control_status.flags.gps  && gps_checks_failing && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
-			_control_status.flags.gps = false;
+		if (_control_status.gps  && gps_checks_failing && (_control_status.opt_flow || _control_status.ev_pos)) {
+			_control_status.gps = false;
 			ECL_WARN("EKF GPS data quality poor - stopping use");
 		}
 
 		// handle the case when we now have GPS, but have not been using it for an extended period
-		if (_control_status.flags.gps) {
+		if (_control_status.gps) {
 			// We are relying on aiding to constrain drift so after a specified time
 			// with no aiding we need to do something
 			bool do_reset = (_time_last_imu - _time_last_pos_fuse > _params.reset_timeout_max)
@@ -608,7 +608,7 @@ void Ekf::controlGpsFusion()
 
 			if (do_reset) {
 				// use GPS velocity data to check and correct yaw angle if a FW vehicle
-				if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
+				if (_control_status.fixed_wing && _control_status.in_air) {
 					// if flying a fixed wing aircraft, do a complete reset that includes yaw
 					realignYawGPS();
 				}
@@ -626,7 +626,7 @@ void Ekf::controlGpsFusion()
 		}
 
 		// Only use GPS data for position and velocity aiding if enabled
-		if (_control_status.flags.gps) {
+		if (_control_status.gps) {
 			_fuse_pos = true;
 			_fuse_vert_vel = true;
 			_fuse_hor_vel = true;
@@ -647,7 +647,7 @@ void Ekf::controlGpsFusion()
 			// calculate observation process noise
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
-			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
+			if (_control_status.opt_flow || _control_status.ev_pos) {
 				// if we are using other sources of aiding, then relax the upper observation
 				// noise limit which prevents bad GPS perturbing the position estimate
 				_posObsNoiseNE = fmaxf(_gps_sample_delayed.hacc, lower_limit);
@@ -673,8 +673,8 @@ void Ekf::controlGpsFusion()
 			_hvelInnovGate = fmaxf(_params.vel_innov_gate, 1.0f);
 		}
 
-	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
-		_control_status.flags.gps = false;
+	} else if (_control_status.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
+		_control_status.gps = false;
 		ECL_WARN("EKF GPS data stopped");
 	}
 }
@@ -691,7 +691,7 @@ void Ekf::controlHeightSensorTimeouts()
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical innovations being positive and not stale.
 	// Clipping causes the average accel reading to move towards zero which makes the INS think it is falling and produces positive vertical innovations
 	float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
-	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are indepedant
+	bool bad_vert_accel = (_control_status.baro_hgt && // we can only run this check if vertical position and velocity observations are indepedant
 			(sq(_vel_pos_innov[5] * _vel_pos_innov[2]) > var_product_lim * (_vel_pos_innov_var[5] * _vel_pos_innov_var[2])) && // vertical position and velocity sensors are in agreement that we have a significant error
 			(_vel_pos_innov[2] > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling
 			((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) && // vertical position data is fresh
@@ -726,7 +726,7 @@ void Ekf::controlHeightSensorTimeouts()
 		bool reset_height = false;
 
 		// handle the case where we are using baro for height
-		if (_control_status.flags.baro_hgt) {
+		if (_control_status.baro_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
 			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
@@ -781,7 +781,7 @@ void Ekf::controlHeightSensorTimeouts()
 		}
 
 		// handle the case we are using GPS for height
-		if (_control_status.flags.gps_hgt) {
+		if (_control_status.gps_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
 			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
@@ -833,7 +833,7 @@ void Ekf::controlHeightSensorTimeouts()
 		}
 
 		// handle the case we are using range finder for height
-		if (_control_status.flags.rng_hgt) {
+		if (_control_status.rng_hgt) {
 			// check if range finder data is available
 			const rangeSample &rng_init = _range_buffer.get_newest();
 			bool rng_data_available = ((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
@@ -879,7 +879,7 @@ void Ekf::controlHeightSensorTimeouts()
 		}
 
 		// handle the case where we are using external vision data for height
-		if (_control_status.flags.ev_hgt) {
+		if (_control_status.ev_hgt) {
 			// check if vision data is available
 			const extVisionSample &ev_init = _ext_vision_buffer.get_newest();
 			bool ev_data_available = ((_time_last_imu - ev_init.time_us) < 2 * EV_MAX_INTERVAL);
@@ -947,7 +947,7 @@ void Ekf::controlHeightFusion()
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+			if (_control_status_prev.rng_hgt != _control_status.rng_hgt) {
 				if (get_terrain_valid()) {
 					_hgt_sensor_offset = _terrain_vpos;
 
@@ -962,28 +962,28 @@ void Ekf::controlHeightFusion()
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+			if (_control_status_prev.baro_hgt != _control_status.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
 
 			// Turn off ground effect compensation if it times out or sufficient height has been gained
 			// since takeoff.
-			if (_control_status.flags.gnd_effect) {
+			if (_control_status.gnd_effect) {
 				if ((_time_last_imu - _time_last_gnd_effect_on > GNDEFFECT_TIMEOUT) ||
 				    (((_last_on_ground_posD - _state.pos(2)) > _params.gnd_effect_max_hgt) &&
-				     _control_status.flags.in_air)) {
+				     _control_status.in_air)) {
 
-					_control_status.flags.gnd_effect = false;
+					_control_status.gnd_effect = false;
 				}
 			}
 
-		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
+		} else if (_control_status.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+			if (_control_status_prev.gps_hgt != _control_status.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
 			}
 		}
@@ -996,13 +996,13 @@ void Ekf::controlHeightFusion()
 
 		// we have just switched to using range finder, calculate height sensor offset such that current
 		// measurment matches our current height estimate
-		if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+		if (_control_status_prev.rng_hgt != _control_status.rng_hgt) {
 			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-			if (_control_status.flags.in_air && get_terrain_valid()) {
+			if (_control_status.in_air && get_terrain_valid()) {
 
 				_hgt_sensor_offset = _terrain_vpos;
 
-			} else if (_control_status.flags.in_air) {
+			} else if (_control_status.in_air) {
 
 				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
 
@@ -1018,7 +1018,7 @@ void Ekf::controlHeightFusion()
 
 		// we have just switched to using baro height, we don't need to set a height sensor offset
 		// since we track a separate _baro_hgt_offset
-		if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+		if (_control_status_prev.baro_hgt != _control_status.baro_hgt) {
 			_hgt_sensor_offset = 0.0f;
 		}
 	}
@@ -1032,7 +1032,7 @@ void Ekf::controlHeightFusion()
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+			if (_control_status_prev.rng_hgt != _control_status.rng_hgt) {
 				if (get_terrain_valid()) {
 					_hgt_sensor_offset = _terrain_vpos;
 
@@ -1047,17 +1047,17 @@ void Ekf::controlHeightFusion()
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+			if (_control_status_prev.gps_hgt != _control_status.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
 			}
 
-		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
+		} else if (_control_status.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+			if (_control_status_prev.baro_hgt != _control_status.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
 		}
@@ -1065,20 +1065,20 @@ void Ekf::controlHeightFusion()
 
 	// Determine if we rely on EV height but switched to baro
 	if (_params.vdist_sensor_type == VDIST_SENSOR_EV) {
-		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
+		if (_control_status.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			_fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+			if (_control_status_prev.baro_hgt != _control_status.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
 		}
 	}
 
 	// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro as a height reference
-	if (!_control_status.flags.baro_hgt && _baro_data_ready) {
+	if (!_control_status.baro_hgt && _baro_data_ready) {
 		float local_time_step = 1e-6f * _delta_time_baro_us;
 		local_time_step = math::constrain(local_time_step, 0.0f, 1.0f);
 
@@ -1088,12 +1088,12 @@ void Ekf::controlHeightFusion()
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 
-	if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt
+	if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.rng_hgt
 	    && (!_range_data_ready || _rng_hgt_faulty)) {
 
 		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
-		if (!_control_status.flags.in_air) {
+		if (!_control_status.in_air) {
 			_range_sample_delayed.rng = _params.rng_gnd_clearance;
 			_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
 
@@ -1114,7 +1114,7 @@ void Ekf::rangeAidConditionsMet()
 	// 3) Vehicle is no further than max_hagl_for_range_aid away from the ground
 	// 4) Ground speed is not higher than max_vel_for_range_aid
 	// 5) Terrain estimate is stable (needs better checks)
-	if (_control_status.flags.in_air && !_rng_hgt_faulty) {
+	if (_control_status.in_air && !_rng_hgt_faulty) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool can_use_range_finder;
 		if (_range_aid_mode_enabled) {
@@ -1126,8 +1126,7 @@ void Ekf::rangeAidConditionsMet()
 			can_use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
 		}
 
-		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
-				      && (_fault_status.value == 0);
+		bool horz_vel_valid = (_control_status.gps || _control_status.ev_pos || _control_status.opt_flow || _fault_status.bad_vel_N || _fault_status.bad_vel_E);
 
 		if (horz_vel_valid) {
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
@@ -1192,7 +1191,7 @@ void Ekf::checkRangeDataValidity()
 	// Check if out of range
 	if ((_range_sample_delayed.rng > _rng_valid_max_val)
 	|| (_range_sample_delayed.rng < _rng_valid_min_val)) {
-		if (_control_status.flags.in_air) {
+		if (_control_status.in_air) {
 			_rng_hgt_faulty = true;
 			return;
 		} else {
@@ -1207,14 +1206,14 @@ void Ekf::checkRangeDataValidity()
 	// Check for "stuck" range finder measurements when range was not valid for certain period
 	// This handles a failure mode observed with some lidar sensors
 	if (_range_sample_delayed.time_us - _time_last_rng_ready > (uint64_t)10e6 &&
-	    _control_status.flags.in_air) {
+	    _control_status.in_air) {
 
 		// require a variance of rangefinder values to check for "stuck" measurements
 		if (_rng_stuck_max_val - _rng_stuck_min_val > _params.range_stuck_threshold) {
 			_time_last_rng_ready = _range_sample_delayed.time_us;
 			_rng_stuck_min_val = 0.0f;
 			_rng_stuck_max_val = 0.0f;
-			_control_status.flags.rng_stuck = false;
+			_control_status.rng_stuck = false;
 
 		} else {
 			if (_range_sample_delayed.rng > _rng_stuck_max_val) {
@@ -1225,7 +1224,7 @@ void Ekf::checkRangeDataValidity()
 				_rng_stuck_min_val = _range_sample_delayed.rng;
 			}
 
-			_control_status.flags.rng_stuck = true;
+			_control_status.rng_stuck = true;
 			_rng_hgt_faulty = true;
 		}
 
@@ -1242,27 +1241,27 @@ void Ekf::controlAirDataFusion()
 	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > (uint64_t)10e6;
 	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > (uint64_t)10e6;
 
-	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
-		_control_status.flags.wind = false;
+	if (_control_status.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
+		_control_status.wind = false;
 
 	}
 
-	if (_control_status.flags.fuse_aspd && airspeed_timed_out) {
-		_control_status.flags.fuse_aspd = false;
+	if (_control_status.fuse_aspd && airspeed_timed_out) {
+		_control_status.fuse_aspd = false;
 
 	}
 
 	// Always try to fuse airspeed data if available and we are in flight
-	if (_tas_data_ready && _control_status.flags.in_air) {
-		// always fuse airsped data if we are flying and data is present
-		if (!_control_status.flags.fuse_aspd) {
-			_control_status.flags.fuse_aspd = true;
+	if (_tas_data_ready && _control_status.in_air) {
+		// always fuse airspeed data if we are flying and data is present
+		if (!_control_status.fuse_aspd) {
+			_control_status.fuse_aspd = true;
 		}
 
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
-		if (!_control_status.flags.wind) {
+		if (!_control_status.wind) {
 			// activate the wind states
-			_control_status.flags.wind = true;
+			_control_status.wind = true;
 			// reset the timout timer to prevent repeated resets
 			_time_last_arsp_fuse = _time_last_imu;
 			_time_last_beta_fuse = _time_last_imu;
@@ -1285,8 +1284,8 @@ void Ekf::controlBetaFusion()
 	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > (uint64_t)10e6;
 	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > (uint64_t)10e6;
 
-	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
-		_control_status.flags.wind = false;
+	if (_control_status.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
+		_control_status.wind = false;
 	}
 
 	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
@@ -1294,11 +1293,11 @@ void Ekf::controlBetaFusion()
 	// Suffient time has lapsed sice the last fusion
 	bool beta_fusion_time_triggered = _time_last_imu - _time_last_beta_fuse > _params.beta_avg_ft_us;
 
-	if (beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air) {
+	if (beta_fusion_time_triggered && _control_status.fuse_beta && _control_status.in_air) {
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
-		if (!_control_status.flags.wind) {
+		if (!_control_status.wind) {
 			// activate the wind states
-			_control_status.flags.wind = true;
+			_control_status.wind = true;
 			// reset the timeout timers to prevent repeated resets
 			_time_last_beta_fuse = _time_last_imu;
 			_time_last_arsp_fuse = _time_last_imu;
@@ -1314,11 +1313,11 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if (_params.fusion_mode & MASK_USE_DRAG) {
-		if (_control_status.flags.in_air
+		if (_control_status.in_air
 				&& !_mag_inhibit_yaw_reset_req) {
-			if (!_control_status.flags.wind) {
+			if (!_control_status.wind) {
 				// reset the wind states and covariances when starting drag accel fusion
-				_control_status.flags.wind = true;
+				_control_status.wind = true;
 				resetWindStates();
 				resetWindCovariance();
 
@@ -1328,7 +1327,7 @@ void Ekf::controlDragFusion()
 			}
 
 		} else {
-			_control_status.flags.wind = false;
+			_control_status.wind = false;
 
 		}
 	}
@@ -1340,14 +1339,14 @@ void Ekf::controlMagFusion()
 		// do not use the magnetomer and deactivate magnetic field states
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
-		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_3D = false;
+		_control_status.mag_hdg = false;
+		_control_status.mag_3D = false;
 		return;
 	}
 
 	// If we are on ground, store the local position and time to use as a reference
 	// Also reset the flight alignment flag so that the mag fields will be re-initialised next time we achieve flight altitude
-	if (!_control_status.flags.in_air) {
+	if (!_control_status.in_air) {
 		_last_on_ground_posD = _state.pos(2);
 		_flt_mag_align_complete = false;
 		_num_bad_flight_yaw_events = 0;
@@ -1355,7 +1354,7 @@ void Ekf::controlMagFusion()
 
 	// check for new magnetometer data that has fallen behind the fusion time horizon
 	// If we are using external vision data for heading then no magnetometer fusion is used
-	if (!_control_status.flags.ev_yaw && _mag_data_ready) {
+	if (!_control_status.ev_yaw && _mag_data_ready) {
 		// perform a yaw reset if requested by other functions
 		if (_mag_yaw_reset_req) {
 			if (!_mag_use_inhibit ) {
@@ -1366,10 +1365,10 @@ void Ekf::controlMagFusion()
 
 		// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 		// or the more accurate 3-axis fusion
-		if (_control_status.flags.mag_fault) {
+		if (_control_status.mag_fault) {
 			// do no magnetometer fusion at all
-			_control_status.flags.mag_hdg = false;
-			_control_status.flags.mag_3D = false;
+			_control_status.mag_hdg = false;
+			_control_status.mag_3D = false;
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO || _params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
@@ -1384,7 +1383,7 @@ void Ekf::controlMagFusion()
 				_yaw_angle_observable = _accel_lpf_NE.norm() > 2.0f * _params.mag_acc_gate;
 			}
 
-			_yaw_angle_observable = _yaw_angle_observable && (_control_status.flags.gps || _control_status.flags.ev_pos);
+			_yaw_angle_observable = _yaw_angle_observable && (_control_status.gps || _control_status.ev_pos);
 
 			// check if there is enough yaw rotation to make the mag bias states observable
 			if (!_mag_bias_observable && (fabsf(_yaw_rate_lpf_ef) > _params.mag_yaw_rate_gate)) {
@@ -1415,17 +1414,17 @@ void Ekf::controlMagFusion()
 			}
 
 			// decide whether 3-axis magnetomer fusion can be used
-			bool use_3D_fusion = _control_status.flags.tilt_align && // Use of 3D fusion requires valid tilt estimates
-					_control_status.flags.in_air && // don't use when on the ground becasue of magnetic anomalies
+			bool use_3D_fusion = _control_status.tilt_align && // Use of 3D fusion requires valid tilt estimates
+					_control_status.in_air && // don't use when on the ground becasue of magnetic anomalies
 					(_flt_mag_align_complete || height_achieved) && // once in-flight field alignment has been performed, ignore relative height
 					((_imu_sample_delayed.time_us - _time_last_movement) < 2 * 1000 * 1000); // Using 3-axis fusion for a minimum period after to allow for false negatives
 
 			// perform switch-over
 			if (use_3D_fusion) {
-				if (!_control_status.flags.mag_3D) {
+				if (!_control_status.mag_3D) {
 					if (!_flt_mag_align_complete) {
 						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
-						if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
+						if (_control_status.fixed_wing && _control_status.in_air) {
 							_flt_mag_align_complete = realignYawGPS();
 
 							if (_velpos_reset_request) {
@@ -1438,7 +1437,7 @@ void Ekf::controlMagFusion()
 							_flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
 						}
 
-						_control_status.flags.yaw_align = _control_status.flags.yaw_align || _flt_mag_align_complete;
+						_control_status.yaw_align = _control_status.yaw_align || _flt_mag_align_complete;
 
 					} else {
 						// reset the mag field covariances
@@ -1453,20 +1452,20 @@ void Ekf::controlMagFusion()
 				}
 
 				// only use one type of mag fusion at the same time
-				_control_status.flags.mag_3D = _flt_mag_align_complete;
-				_control_status.flags.mag_hdg = !_control_status.flags.mag_3D;
+				_control_status.mag_3D = _flt_mag_align_complete;
+				_control_status.mag_hdg = !_control_status.mag_3D;
 
 			} else {
 				// save magnetic field state variances for next time
-				if (_control_status.flags.mag_3D) {
+				if (_control_status.mag_3D) {
 					for (uint8_t index = 0; index <= 5; index ++) {
 						_saved_mag_variance[index] = P[index + 16][index + 16];
 					}
 
-					_control_status.flags.mag_3D = false;
+					_control_status.mag_3D = false;
 				}
 
-				_control_status.flags.mag_hdg = true;
+				_control_status.mag_hdg = true;
 			}
 
 			/*
@@ -1475,14 +1474,14 @@ void Ekf::controlMagFusion()
 			When MAG_FUSE_TYPE_AUTOFW is selected and the vehicle is flying as a fixed wing, then magnetometer fusion is only allowed
 			to access the magnetic field states.
 			*/
-			_control_status.flags.update_mag_states_only = (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW)
-					&& _control_status.flags.fixed_wing;
+			_control_status.update_mag_states_only = (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW)
+					&& _control_status.fixed_wing;
 
 			// For the first 5 seconds after switching to 3-axis fusion we allow the magnetic field state estimates to stabilise
 			// before they are used to constrain heading drift
 			_flt_mag_align_converging = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) < (uint64_t)5e6);
 
-			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
+			if (!_control_status.update_mag_states_only && _control_status_prev.update_mag_states_only) {
 				// When re-commencing use of magnetometer to correct vehicle states
 				// set the field state variance to the observation variance and zero
 				// the covariance terms to allow the field states re-learn rapidly
@@ -1496,41 +1495,41 @@ void Ekf::controlMagFusion()
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 			// always use heading fusion
-			_control_status.flags.mag_hdg = true;
-			_control_status.flags.mag_3D = false;
+			_control_status.mag_hdg = true;
+			_control_status.mag_3D = false;
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
 			// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
-			if (!_control_status.flags.mag_3D || !_flt_mag_align_complete) {
+			if (!_control_status.mag_3D || !_flt_mag_align_complete) {
 				_flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
-				_control_status.flags.yaw_align = _control_status.flags.yaw_align || _flt_mag_align_complete;
+				_control_status.yaw_align = _control_status.yaw_align || _flt_mag_align_complete;
 			}
 
 			// use 3-axis mag fusion if reset was successful
-			_control_status.flags.mag_3D = _flt_mag_align_complete;
-			_control_status.flags.mag_hdg = false;
+			_control_status.mag_3D = _flt_mag_align_complete;
+			_control_status.mag_hdg = false;
 
 		} else {
 			// do no magnetometer fusion at all
-			_control_status.flags.mag_hdg = false;
-			_control_status.flags.mag_3D = false;
+			_control_status.mag_hdg = false;
+			_control_status.mag_3D = false;
 		}
 
 		// if we are using 3-axis magnetometer fusion, but without external aiding, then the declination must be fused as an observation to prevent long term heading drift
 		// fusing declination when gps aiding is available is optional, but recommended to prevent problem if the vehicle is static for extended periods of time
-		if (_control_status.flags.mag_3D && (!_control_status.flags.gps || (_params.mag_declination_source & MASK_FUSE_DECL))) {
-			_control_status.flags.mag_dec = true;
+		if (_control_status.mag_3D && (!_control_status.gps || (_params.mag_declination_source & MASK_FUSE_DECL))) {
+			_control_status.mag_dec = true;
 
 		} else {
-			_control_status.flags.mag_dec = false;
+			_control_status.mag_dec = false;
 		}
 
 		// If the user has selected auto protection against indoor magnetic field errors, only use the magnetomer
 		// if a yaw angle relative to true North is required for navigation. If no GPS or other earth frame aiding
 		// is available, assume that we are operating indoors and the magnetometer should not be used.
 		bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
-		bool not_using_gps = !(_params.fusion_mode & MASK_USE_GPS) || !_control_status.flags.gps;
-		bool not_using_evpos = !(_params.fusion_mode & MASK_USE_EVPOS) || !_control_status.flags.ev_pos;
+		bool not_using_gps = !(_params.fusion_mode & MASK_USE_GPS) || !_control_status.gps;
+		bool not_using_evpos = !(_params.fusion_mode & MASK_USE_EVPOS) || !_control_status.ev_pos;
 		bool not_selected_evyaw =  !(_params.fusion_mode & MASK_USE_EVYAW);
 		if (user_selected && not_using_gps && not_using_evpos && not_selected_evyaw) {
 			_mag_use_inhibit = true;
@@ -1545,14 +1544,14 @@ void Ekf::controlMagFusion()
 		}
 
 		// fuse magnetometer data using the selected methods
-		if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
+		if (_control_status.mag_3D && _control_status.yaw_align) {
 			fuseMag();
 
-			if (_control_status.flags.mag_dec) {
+			if (_control_status.mag_dec) {
 				fuseDeclination();
 			}
 
-		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
+		} else if (_control_status.mag_hdg && _control_status.yaw_align) {
 			// fusion of an Euler yaw angle from either a 321 or 312 rotation sequence
 			fuseHeading();
 
@@ -1567,13 +1566,13 @@ void Ekf::controlVelPosFusion()
 	// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
 	if (!(_params.fusion_mode & MASK_USE_GPS)) {
-		_control_status.flags.gps = false;
+		_control_status.gps = false;
 	}
 
-	if (!_control_status.flags.gps &&
-	    !_control_status.flags.opt_flow &&
-	    !_control_status.flags.ev_pos &&
-	    !(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
+	if (!_control_status.gps &&
+	    !_control_status.opt_flow &&
+	    !_control_status.ev_pos &&
+	    !(_control_status.fuse_aspd && _control_status.fuse_beta)) {
 
 		// We now need to use a synthetic positon observation to prevent unconstrained drift of the INS states.
 		_using_synthetic_position = true;
@@ -1597,7 +1596,7 @@ void Ekf::controlVelPosFusion()
 			_fuse_vert_vel = false;
 			_time_last_fake_gps = _time_last_imu;
 
-			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
+			if (_control_status.in_air && _control_status.tilt_align) {
 				_posObsNoiseNE = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
 
 			} else {
@@ -1629,7 +1628,7 @@ void Ekf::controlVelPosFusion()
 void Ekf::controlAuxVelFusion()
 {
 	bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow;
+	bool primary_aiding = _control_status.gps || _control_status.ev_pos || _control_status.opt_flow;
 
 	if (data_ready && primary_aiding) {
 		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;

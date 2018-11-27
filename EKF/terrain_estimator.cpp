@@ -56,7 +56,7 @@ bool Ekf::initHagl()
 		// success
 		return true;
 
-	} else if (!_control_status.flags.in_air) {
+	} else if (!_control_status.in_air) {
 		// if on ground we assume a ground clearance
 		_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 		// Use the ground clearance value as our uncertainty
@@ -146,18 +146,18 @@ void Ekf::fuseHagl()
 			_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
 			// record last successful fusion event
 			_time_last_hagl_fuse = _time_last_imu;
-			_innov_check_fail_status.flags.reject_hagl = false;
+			_innov_check_fail_status.reject_hagl = false;
 		} else {
 			// If we have been rejecting range data for too long, reset to measurement
 			if (_time_last_imu - _time_last_hagl_fuse > (uint64_t)10E6) {
 				_terrain_vpos = _state.pos(2) + meas_hagl;
 				_terrain_var = obs_variance;
 			} else {
-				_innov_check_fail_status.flags.reject_hagl = true;
+				_innov_check_fail_status.reject_hagl = true;
 			}
 		}
 	} else {
-		_innov_check_fail_status.flags.reject_hagl = true;
+		_innov_check_fail_status.reject_hagl = true;
 		return;
 	}
 }
