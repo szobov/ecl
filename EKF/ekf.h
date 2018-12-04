@@ -669,4 +669,8 @@ private:
 	// check that the range finder data is continuous
 	void checkRangeDataContinuity();
 
+	// reset the yaw using external vision data
+	// return false if reset successful
+	bool realignYawExtVis();
+
 };

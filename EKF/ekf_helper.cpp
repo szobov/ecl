@@ -550,7 +550,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		return true;
 	}
 
-	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
+	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
 		// do not use the magnetomer and deactivate magnetic field states
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
@@ -1646,4 +1646,54 @@ void Ekf::get_ekf2ev_quaternion(float *quat)
 	for (unsigned i = 0; i < 4; i++) {
 		quat[i] = quat_ekf2ev(i);
 	}
+}
+
+// reset the yaw using external vision data
+// return true if reset successful
+bool Ekf:: realignYawExtVis()
+{
+	// check if yaw observation reported accuracy is valid
+	if (!isfinite(_ev_sample_delayed.angErr) || (_ev_sample_delayed.angErr > 0.5f) || (_ev_sample_delayed.angErr <= 0.001f)) {
+		return false;
+	}
+
+	// reset the yaw angle to the value from the observaton quaternion
+	// get the roll, pitch, yaw estimates from the quaternion states
+	Quatf q_init(_state.quat_nominal);
+	Eulerf euler_init(q_init);
+
+	// get initial yaw from the observation quaternion
+	Quatf q_obs(_ev_sample_delayed.quat);
+	Eulerf euler_obs(q_obs);
+	euler_init(2) = euler_obs(2);
+
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	Quatf quat_before_reset = _state.quat_nominal;
+
+	// calculate initial quaternion states for the ekf
+	_state.quat_nominal = Quatf(euler_init);
+
+	// calculate the amount that the quaternion has changed by
+	_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
+
+	// add the reset amount to the output observer buffered data
+	// Note q1 *= q2 is equivalent to q1 = q2 * q1
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
+	}
+
+	// apply the change in attitude quaternion to our newest quaternion estimate
+	// which was already taken out from the output buffer
+	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+
+	// capture the reset event
+	_state_reset_status.quat_counter++;
+
+	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
+	_control_status.flags.ev_yaw = true;
+	_control_status.flags.mag_hdg = false;
+	_control_status.flags.mag_3D = false;
+	_control_status.flags.mag_dec = false;
+
+	return true;
 }

@@ -170,10 +170,8 @@ bool Ekf::initialiseFilter()
 
 			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
 			if (_primary_hgt_source == VDIST_SENSOR_EV) {
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = true;
+				setControlEVHeight();
+				printf("EV height selected\n");
 			}
 
 		} else if ((_ev_counter != 0) && (_ev_sample_delayed.time_us != 0)) {
@@ -188,11 +186,13 @@ bool Ekf::initialiseFilter()
 	}
 
 	// accumulate enough height measurements to be confident in the quality of the data
-	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
+	// we use baro height initially and switch to GPS/range finder later when it passes checks unless use of external vision height is selected
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 		if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
 			// initialise the counter and height fusion method when we start getting data from the buffer
-			setControlBaroHeight();
+			if (_primary_hgt_source != VDIST_SENSOR_EV) {
+				setControlBaroHeight();
+			}
 			_hgt_counter = 1;
 
 		} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
@@ -214,8 +214,10 @@ bool Ekf::initialiseFilter()
 	// check to see if we have enough measurements and return false if not
 	bool hgt_count_fail = _hgt_counter <= 2u * _obs_buffer_length;
 	bool mag_count_fail = _mag_counter <= 2u * _obs_buffer_length;
+	bool ev_count_fail = ((_primary_hgt_source == VDIST_SENSOR_EV) || ((_params.fusion_mode & MASK_USE_EVYAW) && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)))
+			&& (_ev_counter <= 2u * _obs_buffer_length);
 
-	if (hgt_count_fail || mag_count_fail) {
+	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
 		return false;
 
 	} else {
@@ -253,13 +255,21 @@ bool Ekf::initialiseFilter()
 		// update transformation matrix from body to world frame
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
-		// calculate the averaged magnetometer reading
-		Vector3f mag_init = _mag_filt_state;
+		// align yaw to external vision system or magnetomer
+		if ((_params.fusion_mode & MASK_USE_EVYAW) && !ev_count_fail) {
+			// flag the yaw as aligned
+			_control_status.flags.yaw_align =  realignYawExtVis();
+			printf("EV yaw align\n");
 
-		// calculate the initial magnetic field and yaw alignment
-		// Get the magnetic declination
-		calcMagDeclination();
-		_control_status.flags.yaw_align = resetMagHeading(mag_init);
+		} else if (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+			// calculate the averaged magnetometer reading
+			Vector3f mag_init = _mag_filt_state;
+
+			// calculate the initial magnetic field and yaw alignment
+			// Get the magnetic declination
+			calcMagDeclination();
+			_control_status.flags.yaw_align = resetMagHeading(mag_init);
+		}
 
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
@@ -273,7 +283,7 @@ bool Ekf::initialiseFilter()
 			// if we are using external vision data for height, then the vertical position state needs to be reset
 			// because the initialisation position is not the zero datum
 			resetHeight();
-
+			printf("EV height align\n");
 		}
 
 		// initialise the state covariance matrix
