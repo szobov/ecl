@@ -524,8 +524,9 @@ private:
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void fuseHagl();
 
-	// reset the heading and magnetic field states using the declination and magnetometer measurements
-	// return true if successful
+	// Reset the quaternion and magnetic field states and covariances using the declination and magnetometer measurements
+	// using magnetic field vector. If using the external vision system quaternions only reset the quaternion states and
+	// covariances and do not use the magnetic field vector. Return true if successful.
 	bool resetMagHeading(Vector3f &mag_init);
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
