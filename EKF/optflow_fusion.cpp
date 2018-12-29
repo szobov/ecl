@@ -516,24 +516,24 @@ void Ekf::fuseOptFlow()
 	}
 }
 
-void Ekf::get_flow_innov(float flow_innov[2])
+void Ekf::get_flow_innov(float flow_innov[2]) const
 {
 	memcpy(flow_innov, _flow_innov, sizeof(_flow_innov));
 }
 
 
-void Ekf::get_flow_innov_var(float flow_innov_var[2])
+void Ekf::get_flow_innov_var(float flow_innov_var[2]) const
 {
 	memcpy(flow_innov_var, _flow_innov_var, sizeof(_flow_innov_var));
 }
 
-void Ekf::get_drag_innov(float drag_innov[2])
+void Ekf::get_drag_innov(float drag_innov[2]) const
 {
 	memcpy(drag_innov, _drag_innov, sizeof(_drag_innov));
 }
 
 
-void Ekf::get_drag_innov_var(float drag_innov_var[2])
+void Ekf::get_drag_innov_var(float drag_innov_var[2]) const
 {
 	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
 }

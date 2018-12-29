@@ -543,7 +543,7 @@ bool Ekf::realignYawGPS()
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(Vector3f &mag_init)
+bool Ekf::resetMagHeading(const Vector3f &mag_init)
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
@@ -844,80 +844,38 @@ void Ekf::calcEarthRateNED(Vector3f &omega, float lat_rad) const
 
 // gets the innovations of velocity and position measurements
 // 0-2 vel, 3-5 pos
-void Ekf::get_vel_pos_innov(float vel_pos_innov[6])
+void Ekf::get_vel_pos_innov(float vel_pos_innov[6]) const
 {
 	memcpy(vel_pos_innov, _vel_pos_innov, sizeof(float) * 6);
 }
 
 // gets the innovations of the earth magnetic field measurements
-void Ekf::get_aux_vel_innov(float aux_vel_innov[2])
+void Ekf::get_aux_vel_innov(float aux_vel_innov[2]) const
 {
 	memcpy(aux_vel_innov, _aux_vel_innov, sizeof(float) * 2);
 }
 
 // writes the innovations of the earth magnetic field measurements
-void Ekf::get_mag_innov(float mag_innov[3])
+void Ekf::get_mag_innov(float mag_innov[3]) const
 {
 	memcpy(mag_innov, _mag_innov, 3 * sizeof(float));
 }
 
-// gets the innovations of the airspeed measnurement
-void Ekf::get_airspeed_innov(float *airspeed_innov)
-{
-	memcpy(airspeed_innov, &_airspeed_innov, sizeof(float));
-}
-
-// gets the innovations of the synthetic sideslip measurements
-void Ekf::get_beta_innov(float *beta_innov)
-{
-	memcpy(beta_innov, &_beta_innov, sizeof(float));
-}
-
-// gets the innovations of the heading measurement
-void Ekf::get_heading_innov(float *heading_innov)
-{
-	memcpy(heading_innov, &_heading_innov, sizeof(float));
-}
-
 // gets the innovation variances of velocity and position measurements
 // 0-2 vel, 3-5 pos
-void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6])
+void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6]) const
 {
 	memcpy(vel_pos_innov_var, _vel_pos_innov_var, sizeof(float) * 6);
 }
 
 // gets the innovation variances of the earth magnetic field measurements
-void Ekf::get_mag_innov_var(float mag_innov_var[3])
+void Ekf::get_mag_innov_var(float mag_innov_var[3]) const
 {
 	memcpy(mag_innov_var, _mag_innov_var, sizeof(float) * 3);
 }
 
-// gest the innovation variance of the airspeed measurement
-void Ekf::get_airspeed_innov_var(float *airspeed_innov_var)
-{
-	memcpy(airspeed_innov_var, &_airspeed_innov_var, sizeof(float));
-}
-
-// gets the innovation variance of the synthetic sideslip measurement
-void Ekf::get_beta_innov_var(float *beta_innov_var)
-{
-	memcpy(beta_innov_var, &_beta_innov_var, sizeof(float));
-}
-
-// gets the innovation variance of the heading measurement
-void Ekf::get_heading_innov_var(float *heading_innov_var)
-{
-	memcpy(heading_innov_var, &_heading_innov_var, sizeof(float));
-}
-
-// get GPS check status
-void Ekf::get_gps_check_status(uint16_t *val)
-{
-	*val = _gps_check_fail_status.value;
-}
-
 // get the state vector at the delayed time horizon
-void Ekf::get_state_delayed(float *state)
+void Ekf::get_state_delayed(float state[24]) const
 {
 	for (int i = 0; i < 4; i++) {
 		state[i] = _state.quat_nominal(i);
@@ -952,28 +910,8 @@ void Ekf::get_state_delayed(float *state)
 	}
 }
 
-// get the accelerometer bias
-void Ekf::get_accel_bias(float bias[3])
-{
-	float temp[3];
-	temp[0] = _state.accel_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.accel_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.accel_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
-}
-
-// get the gyroscope bias in rad/s
-void Ekf::get_gyro_bias(float bias[3])
-{
-	float temp[3];
-	temp[0] = _state.gyro_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.gyro_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.gyro_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
-}
-
 // get the diagonal elements of the covariance matrix
-void Ekf::get_covariances(float *covariances)
+void Ekf::get_covariances(float covariances[24]) const
 {
 	for (unsigned i = 0; i < _k_num_states; i++) {
 		covariances[i] = P[i][i];
@@ -982,17 +920,17 @@ void Ekf::get_covariances(float *covariances)
 
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
 // return true if the origin is valid
-bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
+bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) const
 {
-	memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
+	*origin_time = _last_gps_origin_time_us;
 	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
-	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
+	*origin_alt = _gps_alt_ref;
 	return _NED_origin_initialised;
 }
 
 // return an array containing the output predictor angular, velocity and position tracking
 // error magnitudes (rad), (m/s), (m)
-void Ekf::get_output_tracking_error(float error[3])
+void Ekf::get_output_tracking_error(float error[3]) const
 {
 	memcpy(error, _output_tracking_error, 3 * sizeof(float));
 }
@@ -1003,7 +941,7 @@ Returns  following IMU vibration metrics in the following array locations
 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 */
-void Ekf::get_imu_vibe_metrics(float vibe[3])
+void Ekf::get_imu_vibe_metrics(float vibe[3]) const
 {
 	memcpy(vibe, _vibe_metrics, 3 * sizeof(float));
 }
@@ -1028,7 +966,7 @@ bool Ekf::get_gps_drift_metrics(float drift[3], bool *blocked)
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv)
+void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
 	// report absolute accuracy taking into account the uncertainty in location of the origin
 	// If not aiding, return 0 for horizontal position estimate as no estimate is available
@@ -1047,7 +985,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv)
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
-void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv)
+void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
 	// TODO - allow for baro drift in vertical position error
 	float hpos_err = sqrtf(P[7][7] + P[8][8]);
@@ -1064,7 +1002,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv)
 }
 
 // get the 1-sigma horizontal and vertical velocity uncertainty
-void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
+void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 {
 	float hvel_err = sqrtf(P[4][4] + P[5][5]);
 
@@ -1097,7 +1035,7 @@ vz_max : Maximum ground relative vertical speed (meters/sec). NaN when limiting 
 hagl_min : Minimum height above ground (meters). NaN when limiting is not needed.
 hagl_max : Maximum height above ground (meters). NaN when limiting is not needed.
 */
-void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
 {
 	// Calculate range finder limits
 	float rangefinder_hagl_min = _rng_valid_min_val;
@@ -1175,7 +1113,7 @@ bool Ekf::reset_imu_bias()
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 // A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 // Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
-void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta)
+void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta) const
 {
 	// return the integer bitmask containing the consistency check pass/fail satus
 	*status = _innov_check_fail_status.value;
@@ -1196,9 +1134,9 @@ void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, f
 }
 
 // return a bitmask integer that describes which state estimates are valid
-void Ekf::get_ekf_soln_status(uint16_t *status)
+ekf_solution_status Ekf::get_ekf_soln_status() const
 {
-	ekf_solution_status soln_status;
+	ekf_solution_status soln_status{};
 
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
 	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
@@ -1215,7 +1153,8 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	bool mag_innov_good = (_mag_test_ratio[0] < 1.0f) && (_mag_test_ratio[1] < 1.0f) && (_mag_test_ratio[2] < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
 	soln_status.flags.accel_error = _bad_vert_accel_detected;
-	*status = soln_status.value;
+
+	return soln_status;
 }
 
 // fuse measurement
@@ -1311,7 +1250,7 @@ void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first,
 
 }
 
-bool Ekf::global_position_is_valid()
+bool Ekf::global_position_is_valid() const
 {
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
 	// and have not started using synthetic position observations to constrain drift
@@ -1635,15 +1574,4 @@ void Ekf::resetExtVisRotMat()
 
 	// reset the rotation matrix
 	_ev_rot_mat = quat_to_invrotmat(q_error);
-}
-
-// return the quaternions for the rotation from the EKF to the External Vision system frame of reference
-void Ekf::get_ekf2ev_quaternion(float *quat)
-{
-	Quatf quat_ekf2ev;
-	quat_ekf2ev.from_axis_angle(_ev_rot_vec_filt);
-
-	for (unsigned i = 0; i < 4; i++) {
-		quat[i] = quat_ekf2ev(i);
-	}
 }
