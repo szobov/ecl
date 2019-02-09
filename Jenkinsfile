@@ -7,7 +7,7 @@ pipeline {
         stage('Linux GCC') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-31'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -27,7 +27,7 @@ pipeline {
         stage('Linux Clang') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-01-31'
+              image 'px4io/px4-dev-clang:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -74,7 +74,7 @@ pipeline {
         stage('coverage') {
           agent {
             docker {
-              image 'px4io/px4-dev-ecl:2019-01-31'
+              image 'px4io/px4-dev-ecl:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -105,7 +105,7 @@ pipeline {
         stage('EKF pytest') {
           agent {
             docker {
-              image 'px4io/px4-dev-ecl:2019-01-31'
+              image 'px4io/px4-dev-ecl:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -123,7 +123,7 @@ pipeline {
         stage('test') {
           agent {
             docker {
-              image 'px4io/px4-dev-ecl:2019-01-31'
+              image 'px4io/px4-dev-ecl:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -140,7 +140,7 @@ pipeline {
         stage('doxygen') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-31'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -166,7 +166,7 @@ pipeline {
         stage('PX4/Firmware build') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-31'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
