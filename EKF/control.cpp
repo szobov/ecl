@@ -121,9 +121,14 @@ void Ekf::controlFusionModes()
 	// check for height sensor timeouts and reset and change sensor if necessary
 	controlHeightSensorTimeouts();
 
+	// Additional data from an external vision pose estimator can be fused.
+	controlExternalVisionFusion();
+
 	// control use of observations for aiding
 	controlMagFusion();
+
 	controlOpticalFlowFusion();
+
 	controlGpsFusion();
 	controlAirDataFusion();
 	controlBetaFusion();
@@ -134,8 +139,6 @@ void Ekf::controlFusionModes()
 	// in a single function using sensor data from multiple sources (GPS, baro, range finder, etc)
 	controlVelPosFusion();
 
-	// Additional data from an external vision pose estimator can be fused.
-	controlExternalVisionFusion();
 
 	// Additional NE velocity data from an auxiliary sensor can be fused
 	controlAuxVelFusion();
@@ -143,6 +146,62 @@ void Ekf::controlFusionModes()
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	update_deadreckoning_status();
 }
+
+void Ekf::resetEVHeading()
+{
+    if (_ev_data_ready) {
+		// external vision yaw aiding selection logic
+		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw) {
+			// don't start using EV data unless daa is arriving frequently
+
+				// reset the yaw angle to the value from the observaton quaternion
+				// get the roll, pitch, yaw estimates from the quaternion states
+				Quatf q_init(_state.quat_nominal);
+				Eulerf euler_init(q_init);
+
+				// get initial yaw from the observation quaternion
+				const extVisionSample &ev_newest = _ext_vision_buffer.get_newest();
+				Quatf q_obs(ev_newest.quat);
+				Eulerf euler_obs(q_obs);
+				euler_init(2) = euler_obs(2);
+
+				// save a copy of the quaternion state for later use in calculating the amount of reset change
+				Quatf quat_before_reset = _state.quat_nominal;
+
+				// calculate initial quaternion states for the ekf
+				_state.quat_nominal = Quatf(euler_init);
+
+				// calculate the amount that the quaternion has changed by
+				_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
+
+				// add the reset amount to the output observer buffered data
+				// Note q1 *= q2 is equivalent to q1 = q2 * q1
+				for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+					_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
+				}
+
+				// apply the change in attitude quaternion to our newest quaternion estimate
+				// which was already taken out from the output buffer
+				_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+
+				// capture the reset event
+				_state_reset_status.quat_counter++;
+
+				// flag the yaw as aligned
+				_control_status.flags.yaw_align = true;
+
+				// turn on fusion of external vision yaw measurements and disable all magnetoemter fusion
+				_control_status.flags.ev_yaw = true;
+				_control_status.flags.mag_hdg = false;
+				_control_status.flags.mag_3D = false;
+				_control_status.flags.mag_dec = false;
+
+				ECL_INFO("EKF resting vision yaw heading");
+		}
+
+    }
+}
+
 
 void Ekf::controlExternalVisionFusion()
 {
@@ -180,7 +239,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
@@ -331,6 +390,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		_control_status.flags.ev_pos = false;
+		_control_status.flags.ev_yaw = false;
 		ECL_INFO("EKF External Vision Data Stopped");
 
 	}
@@ -485,17 +545,18 @@ void Ekf::controlGpsFusion()
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
 				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw || _mag_inhibit_yaw_reset_req) {
-					_control_status.flags.yaw_align = false;
-					_control_status.flags.ev_yaw = false;
-					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-					// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-					// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-					if (_mag_inhibit_yaw_reset_req) {
-						_mag_inhibit_yaw_reset_req = false;
-						// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-						float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
-						setDiag(P, 12, 12, sq(_params.switch_on_gyro_bias * dt));
-					}
+            if (!_control_status.flags.ev_yaw) {
+                _control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+                // Handle the special case where we have not been constraining yaw drift or learning yaw bias due
+                // to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
+                if (_mag_inhibit_yaw_reset_req) {
+                    _mag_inhibit_yaw_reset_req = false;
+                    // Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
+                    float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
+                    setDiag(P, 12, 12, sq(_params.switch_on_gyro_bias * dt));
+                }
+
+            }
 				}
 
 				// If the heading is valid start using gps aiding

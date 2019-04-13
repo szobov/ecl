@@ -545,6 +545,20 @@ bool Ekf::realignYawGPS()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
+    if (_ev_data_ready) {
+        this->resetEVHeading();
+        // set the earth magnetic field states using the updated rotation
+        Dcmf _R_to_earth_after = quat_to_invrotmat(_state.quat_nominal);
+        _state.mag_I = _R_to_earth_after * mag_init;
+        _R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+        Vector3f angle_err_var_vec = calcRotVecVariances();
+        angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+        initialiseQuatCovariances(angle_err_var_vec);
+
+        return true;
+    }
+
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	Quatf quat_before_reset = _state.quat_nominal;
 	Quatf quat_after_reset = _state.quat_nominal;

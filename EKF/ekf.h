@@ -550,6 +550,8 @@ private:
 	// Control the filter fusion modes
 	void controlFusionModes();
 
+  void resetEVHeading();
+
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
 
