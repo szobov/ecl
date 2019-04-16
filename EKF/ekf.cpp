@@ -169,6 +169,7 @@ bool Ekf::initialiseFilter()
 		if ((_ev_counter == 0) && (_ev_sample_delayed.time_us != 0)) {
 			// initialise the counter
 			_ev_counter = 1;
+      _ev_data_ready = true;
 
 			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
 			if (_primary_hgt_source == VDIST_SENSOR_EV) {

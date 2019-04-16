@@ -558,8 +558,6 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
             initialiseQuatCovariances(angle_err_var_vec);
 
             return true;
-        } else {
-            return false;
         }
 
     }
