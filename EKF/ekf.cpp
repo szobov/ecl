@@ -261,7 +261,7 @@ bool Ekf::initialiseFilter()
 		Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
-    if (!_ev_data_ready) {
+    if ((_params.fusion_mode & MASK_USE_EVYAW) && (!_ev_data_ready)) {
         return false;
     }
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);

@@ -149,8 +149,6 @@ void Ekf::controlFusionModes()
 
 void Ekf::resetEVHeading()
 {
-    if (_ev_data_ready) {
-		// external vision yaw aiding selection logic
 		if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw) {
 			// don't start using EV data unless daa is arriving frequently
 
@@ -196,9 +194,7 @@ void Ekf::resetEVHeading()
 				_control_status.flags.mag_3D = false;
 				_control_status.flags.mag_dec = false;
 
-				ECL_INFO("EKF resting vision yaw heading");
-		}
-
+				ECL_INFO("EKF reseting vision yaw heading");
     }
 }
 
